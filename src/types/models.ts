@@ -42,3 +42,30 @@ export type ProduitStock = Omit<
   cree_par: string | null;
   dernier_mouvement: string | null;
 };
+
+export type StatutLivraison = Enums<"statut_livraison">;
+export type ModeCommande = Enums<"mode_commande">;
+
+export type Commande = Tables<"commandes">;
+export type CommandeLigne = Tables<"commande_lignes">;
+export type Livraison = Tables<"livraisons">;
+export type LivraisonLigne = Tables<"livraison_lignes">;
+export type FournisseurProduit = Tables<"fournisseur_produits">;
+export type WebhookN8n = Tables<"webhooks_n8n">;
+
+/** Ligne de la vue v_commandes (référence « CMD-000123 », nom du fournisseur, total, retard). */
+export type CommandeVue = Omit<Commande, "numero"> & {
+  numero: number;
+  reference: string;
+  fournisseur_nom: string;
+  nb_lignes: number;
+  montant_ht: number;
+  est_en_retard: boolean;
+};
+
+export type StatsFournisseur = {
+  nb_commandes: number;
+  delai_reel_moyen_jours: number | null;
+  taux_conformite_pct: number | null;
+  montant_total_ht: number | null;
+};

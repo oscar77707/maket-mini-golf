@@ -8,6 +8,7 @@ import { NAV_ITEMS } from "@/lib/auth/navigation";
 type Item = { href: string; label: string };
 
 const ICONS = Object.fromEntries(NAV_ITEMS.map((i) => [i.href, i.icon]));
+const SHORT_LABELS = Object.fromEntries(NAV_ITEMS.map((i) => [i.href, i.shortLabel ?? i.label]));
 
 export function SidebarLinks({ items }: { items: Item[] }) {
   const pathname = usePathname();
@@ -49,14 +50,15 @@ export function BottomNav({ items }: { items: Item[] }) {
           <Link
             key={href}
             href={href}
+            aria-label={label}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "flex min-h-16 flex-1 flex-col items-center justify-center gap-1 px-1 text-xs font-medium",
+              "flex min-h-16 min-w-0 flex-1 flex-col items-center justify-center gap-1 px-0.5 text-[11px] font-medium",
               active ? "text-primary" : "text-muted-foreground",
             )}
           >
             <Icon aria-hidden className="size-6" />
-            <span className="truncate">{label}</span>
+            <span className="truncate">{SHORT_LABELS[href]}</span>
           </Link>
         );
       })}

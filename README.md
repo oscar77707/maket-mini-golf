@@ -88,3 +88,25 @@ Après chaque nouvelle migration : `supabase gen types typescript --local > src/
    - Inventaires : ouvrir l'inventaire en cours, saisir les quantités (aucun stock théorique affiché), « Soumettre à validation ».
 4. **Gérant** (`gerant@palmeraie.test`) : filtre de pôle en haut ; Inventaires : ouvrir l'inventaire soumis, voir les écarts, « Valider et corriger le stock » ; Import / export : télécharger le modèle, ajouter une ligne fausse (prix « abc ») : elle est signalée sans bloquer les autres.
 5. Vérifier qu'un salarié du restaurant ne voit aucun produit des autres pôles (l'adresse d'une fiche d'un autre pôle renvoie « introuvable »).
+
+## Ce que fait l'étape 3 (Fournisseurs et commandes)
+
+- **Fournisseurs** : liste (recherche, mode de commande, désactivés), fiche avec contact, jours de commande et de livraison, minimum de commande, produits associés (référence, prix HT, conditionnement), statistiques (commandes passées, délai réel moyen, taux de livraisons conformes, montant total), évolution des prix et dernières commandes. Un fournisseur désactivé n'est plus proposé mais son historique reste.
+- **Commandes** : liste filtrable par statut, fournisseur et dates ; création d'un brouillon, ajout de produits d'un clic (quantité conseillée arrondie au conditionnement, prix du fournisseur), quantités et prix modifiables sur place, alerte si le minimum de commande n'est pas atteint, duplication, annulation avec motif, historique de la commande.
+- **Circuit de validation** : le responsable prépare puis « Soumet au gérant » ; **seul le gérant** fait « Valider et envoyer » (un clic). L'application transmet la commande à n8n, signée ; si n8n est éteint ou répond en erreur, la commande reste « À valider », l'erreur est affichée et l'on peut réessayer.
+- **Réception** : « Recevoir la livraison » ouvre un pointage pré-rempli « comme commandé » ; on ne corrige que les écarts (motif obligatoire), le prix facturé, la DLC des produits suivis. « Enregistrer sans valider » permet de reprendre plus tard. La validation crée les entrées de stock, met à jour le dernier prix d'achat et passe la commande à « Livrée » ; « Clôturer » la range.
+- **« Commander tous les produits en alerte »** (page Stocks) crée un brouillon par fournisseur pour les produits sous le seuil, sans reprendre ceux qui sont déjà dans un brouillon ou une commande en cours.
+- **n8n** : envoi signé de la commande, et route `POST /api/webhooks/n8n/orders` pour créer un brouillon ou changer un statut (jeton + signature + horodatage + idempotence). Contrat complet : [docs/n8n.md](docs/n8n.md).
+
+## Comment tester l'étape 3
+
+1. `supabase db reset`, puis renseigner dans `.env.local` : `SUPABASE_SERVICE_ROLE_KEY`, `N8N_WEBHOOK_ORDER_SEND=http://localhost:5678/webhook/order-send`, `N8N_OUTBOUND_SECRET`, `N8N_INBOUND_TOKEN`, `N8N_INBOUND_SECRET` (des chaînes au hasard suffisent en local).
+2. Dans un terminal : `N8N_OUTBOUND_SECRET=<la même valeur> node scripts/faux-n8n.mjs` (il affiche chaque commande reçue). Puis `npm run dev`.
+3. **Responsable** (`resp.restaurant@palmeraie.test`), sur ordinateur :
+   - Fournisseurs > « Nouveau fournisseur » (mode e-mail : l'adresse est obligatoire), puis « Associer un produit » (prix, conditionnement) ;
+   - « Nouvelle commande » depuis la fiche, « Ajouter des produits », modifier une quantité (enregistrée en quittant le champ), « Soumettre au gérant » ; il n'a pas de bouton « Valider et envoyer » ;
+   - page Stocks > « Commander tous les produits en alerte » puis « Voir les brouillons ».
+4. **Gérant** (`gerant@palmeraie.test`) : ouvrir la commande « À valider », « Valider et envoyer » : la commande passe à « Envoyée » et le faux n8n affiche les lignes. Arrêter le faux n8n (ou le relancer avec `--echec`) et recommencer sur une autre commande : elle reste « À valider » avec un message d'erreur, puis repart une fois n8n rétabli. Tester « Annuler la commande » (motif obligatoire) et « Dupliquer ».
+5. **Réception** (critère « moins d'une minute ») : en responsable, sur une commande envoyée, « Recevoir la livraison » ; changer une quantité (le motif de l'écart est demandé), renseigner la DLC d'un produit frais, « Valider la livraison » : le stock du produit est à jour et la commande « Livrée ».
+6. **n8n vers l'application** : `N8N_INBOUND_TOKEN=… N8N_INBOUND_SECRET=… APP_URL=http://localhost:3000 node scripts/appel-n8n.mjs '{"evenement":"status.update","reference":"CMD-000082","statut":"confirmee"}'` ; rejouer avec la même clé d'idempotence (2e argument) : réponse « doublon » ; un jeton faux donne 401 (autres exemples dans [docs/n8n.md](docs/n8n.md)).
+7. **Droits** : un salarié n'a ni « Commandes » ni « Fournisseurs » ; un responsable ne voit que les commandes de son pôle.

@@ -43,6 +43,13 @@ src/lib/table-params.ts   paramètres d'URL des listes (page, taille, recherche)
 src/lib/supabase/paginate.ts  fetchAll et inChunks (PostgREST plafonne à 1000 lignes)
 src/hooks/use-url-state.ts    état des tableaux (filtres, tri, page) stocké dans l'URL
 src/features/stocks/   queries.ts (lectures), actions.ts, schemas.ts, import-parse.ts / import-plan.ts, components/
+src/features/fournisseurs/  labels, schemas, queries, actions, components (fiche, produits associés, prix)
+src/features/commandes/  labels, schemas (dont OrderSendPayload), queries, actions, n8n.ts (envoi signé), webhook-orders.ts (événements entrants), components
+src/app/api/webhooks/n8n/orders/  route entrante n8n (jeton + signature + idempotence), chemin public (`isWebhookPath`)
+src/lib/webhooks/signature.ts  signature HMAC, vérification en temps constant, fenêtre de 5 minutes
+src/lib/action-context.ts  context(...rôles) des Server Actions (session, profil, contrôle du rôle) ; src/lib/zod-helpers.ts  décimaux français, textes optionnels
+scripts/               faux-n8n.mjs (faux serveur n8n), appel-n8n.mjs (appel entrant signé)
+docs/n8n.md            contrat des échanges avec n8n
 src/types/database.ts  types de la base, à régénérer après chaque migration : `supabase gen types typescript --local > src/types/database.ts`
 src/types/models.ts    alias métier (Role, PoleCode, ProduitStock...)
 ```
@@ -79,9 +86,19 @@ src/types/models.ts    alias métier (Role, PoleCode, ProduitStock...)
 - Droits : gérant tout ; responsable crée/modifie les produits, corrige, valide les inventaires, importe, commande ; salarié saisit entrées, sorties, pertes et comptages de son pôle, sans correction ni import. Le salarié compte « à l'aveugle » (stock théorique masqué).
 - Inventaire : un seul inventaire ouvert (en cours ou soumis) par lieu. Le salarié soumet, le responsable ou le gérant valide : les écarts deviennent des corrections reliées aux lignes. Fonction `soumettre_inventaire` (migration `20260929000100`).
 - Import CSV : chaque ligne est vérifiée séparément (une ligne fausse est signalée avec son numéro et ignorée). Le stock de départ devient une entrée « Stock initial » (origine `import_csv`).
-- « Commander tous les produits en alerte » crée des brouillons de commande (RPC `creer_brouillons_reappro`) ; leur validation est à l'étape 3.
+- « Commander tous les produits en alerte » crée des brouillons de commande (RPC `creer_brouillons_reappro`) ; leur validation et leur envoi sont décrits plus bas (étape 3).
+
+## Module Fournisseurs et commandes (étape 3)
+
+- Statuts : brouillon → à valider → envoyée → confirmée / en retard → livrée → clôturée ; annulée possible avant la livraison (motif obligatoire). Les transitions sont contrôlées par le trigger SQL `controler_statut_commande` ; l'application ne fait que les demander.
+- Droits : le gérant est seul à « Valider et envoyer » (refusé aussi par la base pour tout autre rôle, hors appel système). Le responsable crée, modifie, soumet, reçoit les livraisons de son pôle et gère les fournisseurs. Le salarié n'a pas de page Commandes ni Fournisseurs (la matrice du plan lui donne la lecture des commandes de son pôle en base, l'interface ne l'affiche pas).
+- Envoi : `envoyerCommande` (gérant) passe la commande à « à valider », appelle n8n (`n8n.ts`, signé, https exigé en production), puis « envoyée » seulement si n8n répond 2xx. En cas d'échec la commande reste « à valider » et `derniere_erreur_envoi` est renseignée. L'adresse vient de `webhooks_n8n` (si active), sinon de `N8N_WEBHOOK_ORDER_SEND`.
+- Entrant : n8n peut créer un brouillon (`draft.create`) ou poser `confirmee`, `en_retard`, `annulee`. **Jamais `livree`** : la réception se pointe dans l'application (elle crée les mouvements de stock via `valider_livraison`). Idempotence dans `webhooks_recus` (clé `X-Idempotency-Key`).
+- Lignes : quantité et prix enregistrés en quittant le champ (`saveLigne`, upsert sur commande + produit) ; éditables seulement en brouillon ou à valider (RLS). Toujours partir de l'état complet d'une ligne quand on modifie un seul champ.
+- Réappro : « Commander tous les produits en alerte » ne concerne que les produits sous le seuil (rouge) ayant un fournisseur principal, et ignore ceux déjà dans un brouillon ou une commande en cours (`retirerDejaCommandes`).
+- Reporté : photo du bon de livraison, lignes hors commande à la réception, paramétrage de l'adresse du webhook dans l'interface (étape 6). Le minimum de commande avertit sans bloquer.
 
 ## État d'avancement
 
-- Étape 1 (setup, auth, rôles) : faite. Étape 2 (stocks) : faite, voir README. Étapes 3 à 7 : à faire (3 : fournisseurs et commandes, avec le webhook n8n ; ajouter `/api/webhooks/` aux chemins publics de `lib/auth/routes.ts`).
-- Essais réalisés sans Docker : Postgres 16 réel + un bouchon PostgREST/GoTrue local, navigateur piloté par Playwright. Le vrai Supabase (envoi d'e-mails, création des comptes de démo par `supabase db reset`) reste à vérifier au premier démarrage.
+- Étape 1 (setup, auth, rôles) : faite. Étape 2 (stocks) : faite. Étape 3 (fournisseurs, commandes, n8n) : faite, voir README. Étapes 4 à 7 : à faire (4 : journal des appels, route `POST /api/webhooks/n8n/calls`, conservation 90 jours ; le chemin `/api/webhooks/` est déjà public).
+- Essais réalisés sans Docker : Postgres 16 réel + un bouchon PostgREST/GoTrue local (avec clé service_role), navigateur piloté par Playwright, faux n8n en https. Le vrai Supabase (envoi d'e-mails, création des comptes de démo par `supabase db reset`) et un vrai n8n restent à vérifier au premier démarrage.

@@ -1,37 +1,5 @@
 import { z } from "zod";
-import { parseDecimal } from "@/lib/csv";
-
-/** Nombre saisi dans un champ texte : accepte la virgule française ; vide = manquant. */
-const decimal = (label: string) =>
-  z.preprocess(
-    (v) => {
-      if (typeof v === "number") return v;
-      if (typeof v !== "string" || v.trim() === "") return undefined;
-      return parseDecimal(v);
-    },
-    z
-      .number({ error: `${label} : saisissez un nombre.` })
-      .refine(Number.isFinite, `${label} : saisissez un nombre.`),
-  );
-
-const nonNegative = (label: string) =>
-  decimal(label).pipe(
-    z
-      .number()
-      .min(0, `${label} ne peut pas être négatif.`)
-      .max(1_000_000, `${label} est trop élevé.`),
-  );
-
-const optionalText = (max: number) =>
-  z.preprocess(
-    (v) => (typeof v === "string" && v.trim() === "" ? null : v),
-    z.string().trim().max(max, `Maximum ${max} caractères.`).nullable(),
-  );
-
-const optionalUuid = z.preprocess(
-  (v) => (v === "" || v === undefined ? null : v),
-  z.uuid("Choix invalide.").nullable(),
-);
+import { dateString, nonNegative, optionalText, optionalUuid } from "@/lib/zod-helpers";
 
 export const produitSchema = z.object({
   pole_id: z.coerce.number({ error: "Choisissez un pôle." }).int().positive("Choisissez un pôle."),
@@ -53,14 +21,6 @@ export const produitSchema = z.object({
 });
 export type ProduitInput = z.input<typeof produitSchema>;
 export type ProduitValues = z.output<typeof produitSchema>;
-
-const dateString = z.preprocess(
-  (v) => (v === "" || v === undefined ? null : v),
-  z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "Date invalide.")
-    .nullable(),
-);
 
 export const mouvementSchema = z
   .object({

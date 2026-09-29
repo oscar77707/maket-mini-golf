@@ -6,7 +6,12 @@ const PUBLIC_PATHS = [
   "/reinitialiser",
   "/auth/callback",
   "/auth/acces-impossible",
+  "/api/webhooks",
 ];
+
+/** Routes appelées par n8n : elles s'authentifient elles-mêmes (jeton + signature), sans session. */
+export const isWebhookPath = (pathname: string) =>
+  pathname === "/api/webhooks" || pathname.startsWith("/api/webhooks/");
 
 export function isPublicPath(pathname: string) {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));

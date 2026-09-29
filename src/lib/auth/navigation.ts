@@ -9,11 +9,24 @@ import {
 } from "lucide-react";
 import type { Role } from "@/types/models";
 
-export type NavItem = { href: string; label: string; icon: LucideIcon; roles: Role[] };
+/** `shortLabel` : intitulé de la barre du bas sur téléphone, où six entrées se partagent 390 px. */
+export type NavItem = {
+  href: string;
+  label: string;
+  shortLabel?: string;
+  icon: LucideIcon;
+  roles: Role[];
+};
 
 /** Entrées de menu par rôle. La sécurité réelle reste la RLS : ce menu ne fait que guider. */
 export const NAV_ITEMS: NavItem[] = [
-  { href: "/tableau-de-bord", label: "Tableau de bord", icon: LayoutDashboard, roles: ["gerant"] },
+  {
+    href: "/tableau-de-bord",
+    label: "Tableau de bord",
+    shortLabel: "Accueil",
+    icon: LayoutDashboard,
+    roles: ["gerant"],
+  },
   {
     href: "/stocks",
     label: "Stocks",
@@ -22,7 +35,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   { href: "/commandes", label: "Commandes", icon: ClipboardList, roles: ["gerant", "responsable"] },
   { href: "/fournisseurs", label: "Fournisseurs", icon: Truck, roles: ["gerant", "responsable"] },
-  { href: "/appels", label: "Appels IA", icon: PhoneCall, roles: ["gerant"] },
+  { href: "/appels", label: "Appels IA", shortLabel: "Appels", icon: PhoneCall, roles: ["gerant"] },
   { href: "/parametres", label: "Paramètres", icon: Settings, roles: ["gerant"] },
 ];
 

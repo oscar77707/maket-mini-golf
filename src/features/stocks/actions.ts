@@ -2,12 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { getCurrentUser, type CurrentUser } from "@/lib/auth/session";
 import { toFrenchMessage } from "@/lib/errors";
-import { fetchAll } from "@/lib/supabase/paginate";
-import { createClient } from "@/lib/supabase/server";
+import { fetchAll, inChunks } from "@/lib/supabase/paginate";
+import { context, DENIED, failed, type Client } from "@/lib/action-context";
 import { fail, invalid, ok, type ServerResult } from "@/lib/server-result";
-import type { Role } from "@/types/models";
 import { planImport, type ImportLineReport } from "./import-plan";
 import { UNITE_LABELS } from "./labels";
 import {
@@ -18,19 +16,6 @@ import {
   mouvementSchema,
   produitSchema,
 } from "./schemas";
-
-const DENIED = "Vous n'avez pas le droit d'effectuer cette action.";
-type Client = Awaited<ReturnType<typeof createClient>>;
-
-async function context(
-  ...roles: Role[]
-): Promise<{ user: CurrentUser; supabase: Client } | ServerResult<never>> {
-  const user = await getCurrentUser();
-  if (!user) return fail("Votre session a expiré. Reconnectez-vous.");
-  if (roles.length > 0 && !roles.includes(user.profile.role)) return fail(DENIED);
-  return { user, supabase: await createClient() };
-}
-const failed = (c: object): c is ServerResult<never> => "ok" in c;
 
 const refresh = () => revalidatePath("/stocks", "layout");
 const round3 = (n: number) => Math.round(n * 1000) / 1000;
@@ -221,6 +206,32 @@ const commanderSchema = z.object({
   poleId: z.number().int().positive().nullable().optional(),
 });
 
+/** Retire des cibles les produits déjà dans un brouillon ou une commande en cours (évite les doublons). */
+async function retirerDejaCommandes(
+  supabase: Client,
+  targets: Map<number, string[] | undefined>,
+): Promise<number> {
+  const { data: ouvertes, error } = await supabase
+    .from("commandes")
+    .select("id")
+    .in("statut", ["brouillon", "a_valider", "envoyee", "confirmee", "en_retard"]);
+  if (error) throw error;
+  const lignes = await inChunks(
+    (ouvertes ?? []).map((c) => c.id),
+    (chunk) => supabase.from("commande_lignes").select("produit_id").in("commande_id", chunk),
+    40,
+  );
+  const deja = new Set(lignes.map((l) => l.produit_id));
+  let retires = 0;
+  for (const [pole, ids] of [...targets]) {
+    const restants = (ids ?? []).filter((id) => !deja.has(id));
+    retires += (ids?.length ?? 0) - restants.length;
+    if (restants.length) targets.set(pole, restants);
+    else targets.delete(pole);
+  }
+  return retires;
+}
+
 export async function commanderProduits(
   input: z.input<typeof commanderSchema>,
 ): Promise<ServerResult<{ commandes: number; sansFournisseur: number }>> {
@@ -285,6 +296,16 @@ export async function commanderProduits(
         : "Aucun produit à commander pour le moment.",
     );
   }
+  let dejaCommandes: number;
+  try {
+    dejaCommandes = await retirerDejaCommandes(supabase, targets);
+  } catch (error) {
+    return fail(toFrenchMessage(error as { code?: string; message?: string }));
+  }
+  if (targets.size === 0)
+    return fail(
+      "Ces produits sont déjà dans un brouillon ou une commande en cours : rien à ajouter.",
+    );
   const commandes = new Set<string>();
   for (const [pole, ids] of targets) {
     const { data, error } = await supabase.rpc("creer_brouillons_reappro", {
@@ -297,10 +318,11 @@ export async function commanderProduits(
   refresh();
   revalidatePath("/commandes");
   const n = commandes.size;
+  const ignores = (n: number, motif: string) =>
+    n > 0 ? ` ${n} produit${n > 1 ? "s" : ""} ${motif} ignoré${n > 1 ? "s" : ""}.` : "";
   const note =
-    sansFournisseur > 0
-      ? ` ${sansFournisseur} produit${sansFournisseur > 1 ? "s" : ""} sans fournisseur principal ignoré${sansFournisseur > 1 ? "s" : ""}.`
-      : "";
+    ignores(sansFournisseur, "sans fournisseur principal") +
+    ignores(dejaCommandes, "déjà en commande ou en brouillon");
   return ok(
     { commandes: n, sansFournisseur },
     `${n} brouillon${n > 1 ? "s" : ""} de commande créé${n > 1 ? "s" : ""} ou complété${n > 1 ? "s" : ""}.${note}`,

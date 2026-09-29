@@ -25,7 +25,16 @@ export function CommanderButton({
       disabled={pending || props.disabled}
       onClick={() =>
         startTransition(async () => {
-          notify(await commanderProduits({ produitIds, poleId }));
+          const result = await commanderProduits({ produitIds, poleId });
+          notify(result, {
+            action:
+              result.ok && result.data.commandes > 0
+                ? {
+                    label: "Voir les brouillons",
+                    onClick: () => router.push("/commandes?statut=brouillon"),
+                  }
+                : undefined,
+          });
           router.refresh();
         })
       }

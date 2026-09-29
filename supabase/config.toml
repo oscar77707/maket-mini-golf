@@ -1,0 +1,24 @@
+# Configuration Supabase CLI (développement local). Voir README.md.
+project_id = "palmeraie"
+
+[api]
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+
+[db]
+port = 54322
+major_version = 15
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+
+[auth]
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/auth/callback"]
+enable_signup = false
+minimum_password_length = 8
+
+[auth.email]
+enable_confirmations = false

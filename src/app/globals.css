@@ -1,26 +1,82 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:is(.dark *));
+
+/* Couleurs du complexe et des pôles : surchargées à l'exécution depuis la table `parametres` / `poles`. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8fafb;
+  --foreground: #10201f;
+  --card: #ffffff;
+  --card-foreground: #10201f;
+  --muted: #eef2f2;
+  --muted-foreground: #4b5f5e;
+  --border: #d7e0df;
+  --primary: #0f766e;
+  --primary-foreground: #ffffff;
+  --secondary: #f59e0b;
+  --secondary-foreground: #3b2500;
+  --destructive: #b91c1c;
+  --destructive-foreground: #ffffff;
+  --ring: #0f766e;
+  --pole-restaurant: #ea580c;
+  --pole-mini-golf: #16a34a;
+  --pole-aquatique: #0284c7;
+  --radius: 0.75rem;
+}
+
+.dark {
+  --background: #0b1514;
+  --foreground: #e6f0ef;
+  --card: #111f1e;
+  --card-foreground: #e6f0ef;
+  --muted: #182a29;
+  --muted-foreground: #9db4b2;
+  --border: #253b39;
+  --primary: #2dd4bf;
+  --primary-foreground: #04211e;
+  --secondary: #fbbf24;
+  --secondary-foreground: #2b1c00;
+  --destructive: #f87171;
+  --destructive-foreground: #2b0606;
+  --ring: #2dd4bf;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-ring: var(--ring);
+  --color-pole-restaurant: var(--pole-restaurant);
+  --color-pole-mini-golf: var(--pole-mini-golf);
+  --color-pole-aquatique: var(--pole-aquatique);
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  * {
+    border-color: var(--border);
   }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans), system-ui, sans-serif;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
 }

@@ -1,6 +1,12 @@
-import type { Role } from "@/types/database";
+import type { Role } from "@/types/models";
 
-const PUBLIC_PATHS = ["/connexion", "/mot-de-passe-oublie", "/reinitialiser", "/auth/callback", "/auth/acces-impossible"];
+const PUBLIC_PATHS = [
+  "/connexion",
+  "/mot-de-passe-oublie",
+  "/reinitialiser",
+  "/auth/callback",
+  "/auth/acces-impossible",
+];
 
 export function isPublicPath(pathname: string) {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));

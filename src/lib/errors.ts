@@ -15,7 +15,8 @@ const AUTH_MESSAGES: Record<string, string> = {
   email_not_confirmed: "Cette adresse e-mail n'a pas encore été confirmée.",
   user_banned: "Ce compte est désactivé. Contactez le gérant.",
   over_request_rate_limit: "Trop de tentatives. Patientez quelques minutes avant de réessayer.",
-  over_email_send_rate_limit: "Trop de demandes d'e-mail. Patientez quelques minutes avant de réessayer.",
+  over_email_send_rate_limit:
+    "Trop de demandes d'e-mail. Patientez quelques minutes avant de réessayer.",
   same_password: "Le nouveau mot de passe doit être différent de l'ancien.",
   weak_password: "Ce mot de passe est trop faible. Utilisez au moins 8 caractères.",
   session_not_found: "Votre session a expiré. Reconnectez-vous.",
@@ -29,7 +30,12 @@ export function toFrenchMessage(error: unknown): string {
   if (code && AUTH_MESSAGES[code]) return AUTH_MESSAGES[code];
   if (code && POSTGRES_MESSAGES[code]) return POSTGRES_MESSAGES[code];
   // Nos fonctions et triggers SQL lèvent déjà des messages en français (P0001, P0002, 22xxx...).
-  if (message && /[àâçéèêëîïôûùüÿœ]|^(Impossible|Seul|Ce |Cet |La |Le |Les |Indiquez|Passage|Produit)/i.test(message)) {
+  if (
+    message &&
+    /[àâçéèêëîïôûùüÿœ]|^(Impossible|Seul|Ce |Cet |La |Le |Les |Indiquez|Passage|Produit)/i.test(
+      message,
+    )
+  ) {
     return message;
   }
   return GENERIC_ERROR;

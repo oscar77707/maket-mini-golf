@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
-import type { PoleCode } from "@/types/database";
+import type { PoleCode } from "@/types/models";
 
 type PoleOption = { code: PoleCode; nom: string };
 

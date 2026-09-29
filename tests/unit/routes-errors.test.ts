@@ -4,7 +4,8 @@ import { GENERIC_ERROR, toFrenchMessage } from "@/lib/errors";
 import { navFor } from "@/lib/auth/navigation";
 
 describe("safeRedirect", () => {
-  it("garde les chemins internes", () => expect(safeRedirect("/stocks?pole=restaurant")).toBe("/stocks?pole=restaurant"));
+  it("garde les chemins internes", () =>
+    expect(safeRedirect("/stocks?pole=restaurant")).toBe("/stocks?pole=restaurant"));
   it.each(["https://evil.test", "//evil.test", "/\\evil.test", "", null, undefined])(
     "refuse %s",
     (v) => expect(safeRedirect(v)).toBe("/"),
@@ -40,15 +41,20 @@ describe("homePathFor et navigation par rôle", () => {
 
 describe("toFrenchMessage", () => {
   it("traduit les erreurs d'authentification", () => {
-    expect(toFrenchMessage({ code: "invalid_credentials" })).toBe("E-mail ou mot de passe incorrect.");
+    expect(toFrenchMessage({ code: "invalid_credentials" })).toBe(
+      "E-mail ou mot de passe incorrect.",
+    );
   });
   it("traduit les codes Postgres", () => {
     expect(toFrenchMessage({ code: "23505" })).toBe("Cet élément existe déjà.");
   });
   it("conserve les messages français levés par la base", () => {
-    expect(toFrenchMessage({ code: "P0001", message: "Impossible : ce compte est le dernier gérant actif." })).toBe(
-      "Impossible : ce compte est le dernier gérant actif.",
-    );
+    expect(
+      toFrenchMessage({
+        code: "P0001",
+        message: "Impossible : ce compte est le dernier gérant actif.",
+      }),
+    ).toBe("Impossible : ce compte est le dernier gérant actif.");
   });
   it("masque les messages techniques", () => {
     expect(toFrenchMessage({ message: "connection refused" })).toBe(GENERIC_ERROR);

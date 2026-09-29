@@ -24,7 +24,9 @@ describe("forgotPasswordSchema", () => {
 
 describe("newPasswordSchema", () => {
   it("exige 8 caractères", () => {
-    expect(newPasswordSchema.safeParse({ password: "court", confirmation: "court" }).success).toBe(false);
+    expect(newPasswordSchema.safeParse({ password: "court", confirmation: "court" }).success).toBe(
+      false,
+    );
   });
   it("exige deux mots de passe identiques", () => {
     const r = newPasswordSchema.safeParse({ password: "MotDePasse1", confirmation: "MotDePasse2" });
@@ -32,6 +34,8 @@ describe("newPasswordSchema", () => {
     if (!r.success) expect(r.error.issues[0].path).toEqual(["confirmation"]);
   });
   it("accepte un mot de passe valide", () => {
-    expect(newPasswordSchema.safeParse({ password: "MotDePasse1", confirmation: "MotDePasse1" }).success).toBe(true);
+    expect(
+      newPasswordSchema.safeParse({ password: "MotDePasse1", confirmation: "MotDePasse1" }).success,
+    ).toBe(true);
   });
 });

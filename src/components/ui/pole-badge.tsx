@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import type { PoleCode } from "@/types/database";
+import type { PoleCode } from "@/types/models";
 
 const STYLES: Record<PoleCode, string> = {
   restaurant: "bg-pole-restaurant/15 text-pole-restaurant border-pole-restaurant/40",
@@ -7,7 +7,15 @@ const STYLES: Record<PoleCode, string> = {
   aquatique: "bg-pole-aquatique/15 text-pole-aquatique border-pole-aquatique/40",
 };
 
-export function PoleBadge({ code, nom, className }: { code: PoleCode; nom: string; className?: string }) {
+export function PoleBadge({
+  code,
+  nom,
+  className,
+}: {
+  code: PoleCode;
+  nom: string;
+  className?: string;
+}) {
   return (
     <span
       className={cn(

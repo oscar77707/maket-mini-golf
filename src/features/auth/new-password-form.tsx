@@ -32,10 +32,25 @@ export function NewPasswordForm() {
 
   return (
     <form onSubmit={onSubmit} noValidate className="space-y-5">
-      <FormField id="password" label="Nouveau mot de passe" error={errors.password?.message} hint="8 caractères minimum.">
-        <Input id="password" type="password" autoComplete="new-password" aria-invalid={!!errors.password} {...register("password")} />
+      <FormField
+        id="password"
+        label="Nouveau mot de passe"
+        error={errors.password?.message}
+        hint="8 caractères minimum."
+      >
+        <Input
+          id="password"
+          type="password"
+          autoComplete="new-password"
+          aria-invalid={!!errors.password}
+          {...register("password")}
+        />
       </FormField>
-      <FormField id="confirmation" label="Confirmer le mot de passe" error={errors.confirmation?.message}>
+      <FormField
+        id="confirmation"
+        label="Confirmer le mot de passe"
+        error={errors.confirmation?.message}
+      >
         <Input
           id="confirmation"
           type="password"
@@ -45,7 +60,10 @@ export function NewPasswordForm() {
         />
       </FormField>
       {serverError && (
-        <p role="alert" className="rounded-md border border-destructive/40 px-3 py-2 text-sm text-destructive">
+        <p
+          role="alert"
+          className="rounded-md border border-destructive/40 px-3 py-2 text-sm text-destructive"
+        >
           {serverError}
         </p>
       )}

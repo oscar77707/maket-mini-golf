@@ -13,7 +13,10 @@ export function ErrorState({
   onRetry?: () => void;
 }) {
   return (
-    <div role="alert" className="flex flex-col items-center gap-3 rounded-lg border border-destructive/40 bg-card px-6 py-14 text-center">
+    <div
+      role="alert"
+      className="flex flex-col items-center gap-3 rounded-lg border border-destructive/40 bg-card px-6 py-14 text-center"
+    >
       <TriangleAlert aria-hidden className="size-10 text-destructive" />
       <h2 className="text-lg font-semibold">{title}</h2>
       <p className="max-w-md text-muted-foreground">{description}</p>

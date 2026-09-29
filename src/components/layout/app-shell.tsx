@@ -2,7 +2,7 @@ import { Palmtree } from "lucide-react";
 import { Suspense } from "react";
 import { navFor } from "@/lib/auth/navigation";
 import type { CurrentUser } from "@/lib/auth/session";
-import type { PoleCode } from "@/types/database";
+import type { PoleCode } from "@/types/models";
 import { BottomNav, SidebarLinks } from "./nav-links";
 import { PoleFilter } from "./pole-filter";
 import { ThemeToggle } from "./theme-toggle";

@@ -7,7 +7,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <Palmtree aria-hidden className="size-10" />
         <span className="text-3xl font-bold tracking-tight">La Palmeraie</span>
       </div>
-      <div className="w-full max-w-md rounded-lg border bg-card p-6 shadow-sm sm:p-8">{children}</div>
+      <div className="w-full max-w-md rounded-lg border bg-card p-6 shadow-sm sm:p-8">
+        {children}
+      </div>
     </main>
   );
 }

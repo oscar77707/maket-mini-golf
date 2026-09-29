@@ -8,7 +8,8 @@ export const metadata: Metadata = { title: "Connexion" };
 
 const NOTICES: Record<string, string> = {
   "lien-invalide": "Ce lien n'est plus valable. Demandez un nouvel e-mail de réinitialisation.",
-  "acces-impossible": "Votre session est terminée ou votre compte est désactivé. Reconnectez-vous, ou contactez le gérant.",
+  "acces-impossible":
+    "Votre session est terminée ou votre compte est désactivé. Reconnectez-vous, ou contactez le gérant.",
 };
 
 export default async function ConnexionPage({

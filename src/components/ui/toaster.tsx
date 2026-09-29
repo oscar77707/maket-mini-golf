@@ -5,5 +5,12 @@ import { useTheme } from "next-themes";
 
 export function Toaster() {
   const { resolvedTheme } = useTheme();
-  return <Sonner theme={resolvedTheme === "dark" ? "dark" : "light"} position="top-center" richColors closeButton />;
+  return (
+    <Sonner
+      theme={resolvedTheme === "dark" ? "dark" : "light"}
+      position="top-center"
+      richColors
+      closeButton
+    />
+  );
 }

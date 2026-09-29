@@ -6,12 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { publicEnv } from "@/lib/env";
 import { toFrenchMessage } from "@/lib/errors";
 import { safeRedirect } from "@/lib/auth/routes";
-import {
-  forgotPasswordSchema,
-  loginSchema,
-  newPasswordSchema,
-  type ActionResult,
-} from "./schemas";
+import { forgotPasswordSchema, loginSchema, newPasswordSchema, type ActionResult } from "./schemas";
 
 export async function login(input: unknown): Promise<ActionResult> {
   const parsed = loginSchema.safeParse(input);
@@ -25,7 +20,11 @@ export async function login(input: unknown): Promise<ActionResult> {
   if (error || !signIn.user) return { ok: false, message: toFrenchMessage(error) };
 
   // Un compte désactivé par le gérant ne doit pas entrer, même avec un mot de passe valide.
-  const { data: profile } = await supabase.from("profiles").select("actif").eq("id", signIn.user.id).maybeSingle();
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("actif")
+    .eq("id", signIn.user.id)
+    .maybeSingle();
   if (!profile?.actif) {
     await supabase.auth.signOut();
     return { ok: false, message: "Ce compte est désactivé. Contactez le gérant." };
@@ -49,7 +48,8 @@ export async function requestPasswordReset(input: unknown): Promise<ActionResult
   }
   return {
     ok: true,
-    message: "Si un compte existe pour cette adresse, un e-mail de réinitialisation vient d'être envoyé.",
+    message:
+      "Si un compte existe pour cette adresse, un e-mail de réinitialisation vient d'être envoyé.",
   };
 }
 
@@ -60,7 +60,10 @@ export async function updatePassword(input: unknown): Promise<ActionResult> {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
   if (!data.user) {
-    return { ok: false, message: "Le lien a expiré. Demandez un nouvel e-mail de réinitialisation." };
+    return {
+      ok: false,
+      message: "Le lien a expiré. Demandez un nouvel e-mail de réinitialisation.",
+    };
   }
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
   if (error) return { ok: false, message: toFrenchMessage(error) };

@@ -18,7 +18,10 @@ export function ForgotPasswordForm() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<ForgotPasswordValues>({ resolver: zodResolver(forgotPasswordSchema), defaultValues: { email: "" } });
+  } = useForm<ForgotPasswordValues>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: { email: "" },
+  });
 
   const onSubmit = handleSubmit((values) => {
     setResult(null);
@@ -56,7 +59,10 @@ export function ForgotPasswordForm() {
         />
       </FormField>
       {result && !result.ok && (
-        <p role="alert" className="rounded-md border border-destructive/40 px-3 py-2 text-sm text-destructive">
+        <p
+          role="alert"
+          className="rounded-md border border-destructive/40 px-3 py-2 text-sm text-destructive"
+        >
           {result.message}
         </p>
       )}

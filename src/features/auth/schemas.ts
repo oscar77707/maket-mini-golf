@@ -1,6 +1,10 @@
 import { z } from "zod";
 
-const emailField = z.string().trim().toLowerCase().pipe(z.email("Saisissez une adresse e-mail valide."));
+const emailField = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .pipe(z.email("Saisissez une adresse e-mail valide."));
 
 export const loginSchema = z.object({
   email: emailField,

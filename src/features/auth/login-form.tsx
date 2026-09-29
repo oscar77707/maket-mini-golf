@@ -60,7 +60,10 @@ export function LoginForm({ redirection, notice }: { redirection?: string; notic
         />
       </FormField>
       {serverError && (
-        <p role="alert" className="rounded-md border border-destructive/40 px-3 py-2 text-sm text-destructive">
+        <p
+          role="alert"
+          className="rounded-md border border-destructive/40 px-3 py-2 text-sm text-destructive"
+        >
           {serverError}
         </p>
       )}

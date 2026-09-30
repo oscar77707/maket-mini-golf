@@ -31,12 +31,20 @@ export function MouvementSheet({
   canCorrect,
   open,
   onOpenChange,
+  selecteur,
+  onAutre,
+  onChangerProduit,
 }: {
   produit: MouvementProduit | null;
   type?: TypeMouvement;
   canCorrect: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Ajout rapide : sélecteur de produit affiché tant qu'aucun produit n'est choisi. */
+  selecteur?: React.ReactNode;
+  /** Ajout rapide : « Enregistrer et ajouter un autre » (le type de mouvement est conservé). */
+  onAutre?: (type: TypeMouvement) => void;
+  onChangerProduit?: () => void;
 }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -45,16 +53,31 @@ export function MouvementSheet({
         description={
           produit
             ? `Stock actuel : ${formatNumber(produit.stock_actuel, 3)} ${UNITE_LABELS[produit.unite]}`
-            : undefined
+            : "Choisissez d'abord le produit concerné."
         }
       >
-        {produit && (
-          <MouvementForm
-            produit={produit}
-            initialType={type}
-            canCorrect={canCorrect}
-            onDone={() => onOpenChange(false)}
-          />
+        {produit ? (
+          <>
+            {onChangerProduit && (
+              <button
+                type="button"
+                onClick={onChangerProduit}
+                className="-mt-2 self-start text-sm font-medium text-primary underline underline-offset-4"
+              >
+                Changer de produit
+              </button>
+            )}
+            <MouvementForm
+              key={produit.id}
+              produit={produit}
+              initialType={type}
+              canCorrect={canCorrect}
+              onDone={() => onOpenChange(false)}
+              onAutre={onAutre}
+            />
+          </>
+        ) : (
+          selecteur
         )}
       </SheetContent>
     </Sheet>
@@ -66,11 +89,13 @@ function MouvementForm({
   initialType,
   canCorrect,
   onDone,
+  onAutre,
 }: {
   produit: MouvementProduit;
   initialType: TypeMouvement;
   canCorrect: boolean;
   onDone: () => void;
+  onAutre?: (type: TypeMouvement) => void;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -105,33 +130,35 @@ function MouvementForm({
       ? quantite - produit.stock_actuel
       : null;
 
-  const onSubmit = handleSubmit((values) => {
-    setServerError(null);
-    startTransition(async () => {
-      const result = await enregistrerMouvement(values);
-      if (!result.ok) {
-        setServerError(result.message);
-        for (const [field, message] of Object.entries(result.fieldErrors ?? {})) {
-          if (field in values) setError(field as keyof MouvementInput, { message });
+  const submit = (autre: boolean) =>
+    handleSubmit((values) => {
+      setServerError(null);
+      startTransition(async () => {
+        const result = await enregistrerMouvement(values);
+        if (!result.ok) {
+          setServerError(result.message);
+          for (const [field, message] of Object.entries(result.fieldErrors ?? {})) {
+            if (field in values) setError(field as keyof MouvementInput, { message });
+          }
+          return;
         }
-        return;
-      }
-      const id = result.data.id;
-      notify(result, {
-        undo: {
-          onClick: async () => {
-            notify(await annulerMouvement(id));
-            router.refresh();
+        const id = result.data.id;
+        notify(result, {
+          undo: {
+            onClick: async () => {
+              notify(await annulerMouvement(id));
+              router.refresh();
+            },
           },
-        },
+        });
+        router.refresh();
+        if (autre && onAutre) onAutre(values.type);
+        else onDone();
       });
-      onDone();
-      router.refresh();
     });
-  });
 
   return (
-    <form onSubmit={onSubmit} noValidate className="flex flex-1 flex-col gap-5">
+    <form onSubmit={submit(false)} noValidate className="flex flex-1 flex-col gap-5">
       <fieldset className="space-y-2">
         <legend className="text-sm font-medium">Type de mouvement</legend>
         <div className="grid grid-cols-2 gap-2">
@@ -220,11 +247,23 @@ function MouvementForm({
           {serverError}
         </p>
       )}
-      <div className="mt-auto pt-2">
-        <Button type="submit" size="lg" className="w-full" disabled={pending}>
+      <div className="mt-auto flex flex-col gap-2 pt-2 sm:flex-row-reverse">
+        <Button type="submit" size="lg" className="flex-1" disabled={pending}>
           {pending && <Loader2 aria-hidden className="animate-spin" />}
           Enregistrer
         </Button>
+        {onAutre && (
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            className="flex-1"
+            disabled={pending}
+            onClick={() => void submit(true)()}
+          >
+            Enregistrer et ajouter un autre
+          </Button>
+        )}
       </div>
     </form>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
@@ -11,8 +11,11 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
+import { BrouillonBanner } from "@/components/feedback/brouillon-banner";
 import { notify } from "@/components/feedback/notify";
 import { FormField } from "@/features/auth/form-field";
+import { useQuickAdd } from "@/features/quick-add/context";
+import { useFormDraft } from "@/hooks/use-form-draft";
 import type { Fournisseur } from "@/types/models";
 import { createFournisseur, updateFournisseur } from "../actions";
 import { MODE_LABELS } from "../labels";
@@ -20,6 +23,21 @@ import { fournisseurSchema, type FournisseurInput, type FournisseurValues } from
 import { JoursSelect } from "./jours-select";
 
 const num = (n: number) => String(n).replace(".", ",");
+
+const VIERGE: FournisseurInput = {
+  nom: "",
+  contact_nom: "",
+  email: "",
+  telephone: "",
+  mode_commande: "email",
+  url_portail: "",
+  jours_commande: [],
+  jours_livraison: [],
+  delai_livraison_jours: "1",
+  minimum_commande_ht: "0",
+  adresse: "",
+  notes: "",
+};
 
 export function FournisseurSheet({
   open,
@@ -52,13 +70,7 @@ function FournisseurForm({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [serverError, setServerError] = useState<string | null>(null);
-  const {
-    register,
-    handleSubmit,
-    control,
-    setError,
-    formState: { errors },
-  } = useForm<FournisseurInput, unknown, FournisseurValues>({
+  const form = useForm<FournisseurInput, unknown, FournisseurValues>({
     resolver: zodResolver(fournisseurSchema),
     defaultValues: fournisseur
       ? {
@@ -75,44 +87,60 @@ function FournisseurForm({
           adresse: fournisseur.adresse ?? "",
           notes: fournisseur.notes ?? "",
         }
-      : {
-          nom: "",
-          contact_nom: "",
-          email: "",
-          telephone: "",
-          mode_commande: "email",
-          url_portail: "",
-          jours_commande: [],
-          jours_livraison: [],
-          delai_livraison_jours: "1",
-          minimum_commande_ht: "0",
-          adresse: "",
-          notes: "",
-        },
+      : VIERGE,
+  });
+  const {
+    register,
+    handleSubmit,
+    control,
+    reset,
+    setFocus,
+    setError,
+    formState: { errors },
+  } = form;
+  const { utilisateurId } = useQuickAdd();
+  const brouillon = useFormDraft(form, {
+    cle: "fournisseur",
+    utilisateurId,
+    actif: !fournisseur,
   });
   const mode = useWatch({ control, name: "mode_commande" });
+  // « Enregistrer et ajouter un autre » : le curseur revient sur le nom une fois le formulaire réaffiché
+  const [enchaines, setEnchaines] = useState(0);
+  useEffect(() => {
+    if (enchaines > 0) setFocus("nom");
+  }, [enchaines, setFocus]);
 
-  const onSubmit = handleSubmit((values) => {
-    setServerError(null);
-    startTransition(async () => {
-      const result = fournisseur
-        ? await updateFournisseur(fournisseur.id, values)
-        : await createFournisseur(values);
-      if (!result.ok) {
-        setServerError(result.message);
-        for (const [field, message] of Object.entries(result.fieldErrors ?? {}))
-          setError(field as keyof FournisseurInput, { message });
-        return;
-      }
-      notify(result);
-      router.refresh();
-      onDone();
-      if (result.data && "id" in result.data) router.push(`/fournisseurs/${result.data.id}`);
+  const submit = (autre: boolean) =>
+    handleSubmit((values) => {
+      setServerError(null);
+      startTransition(async () => {
+        const result = fournisseur
+          ? await updateFournisseur(fournisseur.id, values)
+          : await createFournisseur(values);
+        if (!result.ok) {
+          setServerError(result.message);
+          for (const [field, message] of Object.entries(result.fieldErrors ?? {}))
+            setError(field as keyof FournisseurInput, { message });
+          return;
+        }
+        notify(result);
+        brouillon.clear();
+        router.refresh();
+        if (autre) {
+          // « Enregistrer et ajouter un autre » : on reste sur la page, formulaire vierge
+          reset(VIERGE);
+          setEnchaines((n) => n + 1);
+          return;
+        }
+        onDone();
+        if (result.data && "id" in result.data) router.push(`/fournisseurs/${result.data.id}`);
+      });
     });
-  });
 
   return (
-    <form onSubmit={onSubmit} noValidate className="flex flex-1 flex-col gap-4">
+    <form onSubmit={submit(false)} noValidate className="flex flex-1 flex-col gap-4">
+      {brouillon.repris && <BrouillonBanner onEffacer={() => brouillon.discard(VIERGE)} />}
       <FormField id="nom" label="Nom du fournisseur" error={errors.nom?.message}>
         <Input
           id="nom"
@@ -242,11 +270,23 @@ function FournisseurForm({
           {serverError}
         </p>
       )}
-      <div className="mt-auto pt-2">
-        <Button type="submit" size="lg" className="w-full" disabled={pending}>
+      <div className="mt-auto flex flex-col gap-2 pt-2 sm:flex-row-reverse">
+        <Button type="submit" size="lg" className="flex-1" disabled={pending}>
           {pending && <Loader2 aria-hidden className="animate-spin" />}
           {fournisseur ? "Enregistrer" : "Créer le fournisseur"}
         </Button>
+        {!fournisseur && (
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            className="flex-1"
+            disabled={pending}
+            onClick={() => void submit(true)()}
+          >
+            Enregistrer et ajouter un autre
+          </Button>
+        )}
       </div>
     </form>
   );

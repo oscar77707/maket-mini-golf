@@ -9,11 +9,15 @@ import {
 } from "lucide-react";
 import type { Role } from "@/types/models";
 
-/** `shortLabel` : intitulé de la barre du bas sur téléphone, où six entrées se partagent 390 px. */
+/**
+ * `shortLabel` : intitulé de la barre du bas sur téléphone, où six entrées se partagent 390 px.
+ * `key` : lettre du raccourci « G puis … » (aller à la page).
+ */
 export type NavItem = {
   href: string;
   label: string;
   shortLabel?: string;
+  key: string;
   icon: LucideIcon;
   roles: Role[];
 };
@@ -24,19 +28,40 @@ export const NAV_ITEMS: NavItem[] = [
     href: "/tableau-de-bord",
     label: "Tableau de bord",
     shortLabel: "Accueil",
+    key: "t",
     icon: LayoutDashboard,
     roles: ["gerant", "responsable"],
   },
   {
     href: "/stocks",
     label: "Stocks",
+    key: "s",
     icon: Warehouse,
     roles: ["gerant", "responsable", "salarie"],
   },
-  { href: "/commandes", label: "Commandes", icon: ClipboardList, roles: ["gerant", "responsable"] },
-  { href: "/fournisseurs", label: "Fournisseurs", icon: Truck, roles: ["gerant", "responsable"] },
-  { href: "/appels", label: "Appels IA", shortLabel: "Appels", icon: PhoneCall, roles: ["gerant"] },
-  { href: "/parametres", label: "Paramètres", icon: Settings, roles: ["gerant"] },
+  {
+    href: "/commandes",
+    label: "Commandes",
+    key: "c",
+    icon: ClipboardList,
+    roles: ["gerant", "responsable"],
+  },
+  {
+    href: "/fournisseurs",
+    label: "Fournisseurs",
+    key: "f",
+    icon: Truck,
+    roles: ["gerant", "responsable"],
+  },
+  {
+    href: "/appels",
+    label: "Appels IA",
+    shortLabel: "Appels",
+    key: "a",
+    icon: PhoneCall,
+    roles: ["gerant"],
+  },
+  { href: "/parametres", label: "Paramètres", key: "p", icon: Settings, roles: ["gerant"] },
 ];
 
 export const navFor = (role: Role) => NAV_ITEMS.filter((i) => i.roles.includes(role));

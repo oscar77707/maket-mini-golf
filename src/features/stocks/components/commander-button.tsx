@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { Loader2, ShoppingCart } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { notify } from "@/components/feedback/notify";
 import { commanderProduits } from "../actions";
@@ -22,6 +23,11 @@ export function CommanderButton({
   return (
     <Button
       {...props}
+      // le libellé passe à la ligne plutôt que de dépasser de l'écran (360 px)
+      className={cn(
+        "h-auto min-h-11 max-w-full whitespace-normal py-2 text-center",
+        props.className,
+      )}
       disabled={pending || props.disabled}
       onClick={() =>
         startTransition(async () => {

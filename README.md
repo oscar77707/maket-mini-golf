@@ -169,3 +169,20 @@ Réservé au gérant (menu « Paramètres », six onglets ; le responsable et le
 6. **Intégrations** : lancer le faux n8n (`node scripts/faux-n8n.mjs`, voir étape 3), saisir son adresse https, « Tester la connexion » ; l'arrêter et retester : « n8n est injoignable ».
 7. **Données et RGPD** : régler la conservation, « Purger maintenant », parcourir le journal d'audit.
 8. Avec `resp.restaurant@palmeraie.test` ou un salarié : pas de menu « Paramètres », `/parametres` renvoie « Accès refusé ». Chacun garde « Mon compte » (changer son mot de passe, télécharger ses données).
+
+## Ce que fait l'étape 7 (Raccourcis et ajouts rapides)
+
+- **Bouton « + Ajouter »** sur toutes les pages : en haut à droite sur ordinateur, rond et flottant au-dessus de la barre du bas sur téléphone. Il propose, selon le rôle : nouveau produit, nouvelle commande, nouveau fournisseur, mouvement de stock (un salarié n'a que ce dernier : le bouton l'ouvre directement). Le formulaire s'ouvre en tiroir, sans quitter la page. **Critère n°3 : 2 clics** (« Ajouter » puis l'entrée), puis on remplit et on valide avec Entrée.
+- **Recherche rapide `Ctrl K`** (`⌘ K` sur Mac, ou la loupe en haut) : tapez un nom de produit, une référence de commande, un fournisseur, une page ou une action ; flèches, Entrée, Échap. Chacun ne voit que ce que ses droits permettent.
+- **Touches** (hors champ de saisie) : `N` ajoute selon la page (sur Commandes, une commande ; sur Fournisseurs, un fournisseur ; sur Stocks, un produit ; ailleurs le menu), `/` va à la recherche de la liste, `?` affiche l'aide, `G` puis `S` (Stocks), `C` (Commandes), `F` (Fournisseurs), `T` (Tableau de bord), `A` (Appels IA), `P` (Paramètres), `Échap` ferme. Les touches d'une lettre se coupent dans l'aide (`?`) si elles gênent ; `Ctrl K` reste.
+- **« Enregistrer et ajouter un autre »** pour les produits, fournisseurs et mouvements (le type de mouvement est conservé, pratique pour une série de pertes).
+- **Brouillons automatiques** : si vous fermez un formulaire de produit, fournisseur ou commande en cours de saisie, il est retrouvé à la réouverture (bandeau « Brouillon repris » avec « Effacer le brouillon »). Enregistré sur cet appareil seulement, un brouillon par pôle, effacé après 24 h ou à la déconnexion.
+
+## Comment tester l'étape 7
+
+1. `npm run dev` (aucune nouvelle migration), connexion `gerant@palmeraie.test`.
+2. **Critère n°3** : depuis n'importe quelle page (tableau de bord, une commande, les paramètres…), cliquer « Ajouter » puis « Nouveau produit » : le formulaire est ouvert en 2 clics. Écrire un nom et les trois nombres, Entrée : le produit est créé. Même chose avec « Nouvelle commande » (choisir le fournisseur avec les flèches, Entrée).
+3. **Clavier** : `Ctrl K`, taper « farine », Entrée : la fiche du produit s'ouvre. `G` puis `C` : les commandes. `N` : une nouvelle commande. `?` : la liste des touches.
+4. **Brouillon** : `N` sur Stocks, écrire un nom de produit, `Échap`, `N` de nouveau : la saisie est là avec le bandeau. « Effacer le brouillon » la supprime.
+5. **Téléphone** (ou fenêtre étroite) : le bouton rond « Ajouter » flotte au-dessus de la barre du bas ; la loupe en haut ouvre la recherche.
+6. **Droits** : avec `salarie.restaurant@palmeraie.test`, « Ajouter » ouvre directement un mouvement de stock, la recherche ne trouve que des produits, `G` puis `C` ne fait rien. Avec `resp.restaurant@palmeraie.test`, les produits du mini-golf n'apparaissent pas dans la recherche.

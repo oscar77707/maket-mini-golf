@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { requireUser } from "@/lib/auth/session";
+import { getReferentielsAjout } from "@/features/quick-add/queries";
 import { logoPublicUrl } from "@/lib/logo";
 import { createClient } from "@/lib/supabase/server";
 
@@ -18,8 +19,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       .from("parametres")
       .select("nom_complexe, logo_path, couleur_principale, couleur_secondaire")
       .maybeSingle(),
-    supabase.from("poles").select("code, nom, couleur").eq("actif", true).order("ordre"),
+    supabase.from("poles").select("id, code, nom, couleur").eq("actif", true).order("ordre"),
   ]);
+
+  const referentiels = await getReferentielsAjout(
+    user.profile.role,
+    (poles ?? []).map(({ id, code, nom }) => ({ id, code, nom })),
+  );
 
   // Couleurs configurables dans Paramètres. Valeurs contrôlées (#RRGGBB) avant injection CSS.
   const vars: string[] = [];
@@ -39,6 +45,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         complexName={parametres?.nom_complexe ?? "La Palmeraie"}
         logoUrl={logoPublicUrl(parametres?.logo_path)}
         poles={poles ?? []}
+        referentiels={referentiels}
       >
         {children}
       </AppShell>

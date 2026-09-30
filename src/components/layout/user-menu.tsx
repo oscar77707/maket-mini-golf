@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { LogOut, UserRound } from "lucide-react";
+import { UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PoleBadge } from "@/components/ui/pole-badge";
-import { logout } from "@/features/auth/actions";
 import { ROLE_LABELS } from "@/lib/auth/navigation";
 import type { CurrentUser } from "@/lib/auth/session";
+import { LogoutButton } from "./logout-button";
 
 export function UserMenu({ user }: { user: CurrentUser }) {
   const { profile, pole } = user;
@@ -23,11 +23,7 @@ export function UserMenu({ user }: { user: CurrentUser }) {
           <UserRound aria-hidden />
         </Link>
       </Button>
-      <form action={logout}>
-        <Button type="submit" variant="ghost" size="icon" aria-label="Se déconnecter">
-          <LogOut aria-hidden />
-        </Button>
-      </form>
+      <LogoutButton />
     </div>
   );
 }

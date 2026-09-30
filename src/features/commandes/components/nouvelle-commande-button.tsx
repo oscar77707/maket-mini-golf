@@ -10,8 +10,11 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
+import { BrouillonBanner } from "@/components/feedback/brouillon-banner";
 import { notify } from "@/components/feedback/notify";
 import { FormField } from "@/features/auth/form-field";
+import { useQuickAdd } from "@/features/quick-add/context";
+import { useFormDraft } from "@/hooks/use-form-draft";
 import type { Fournisseur, Pole } from "@/types/models";
 import { creerCommande } from "../actions";
 import {
@@ -22,7 +25,7 @@ import {
 
 type Props = {
   fournisseurs: Pick<Fournisseur, "id" | "nom">[];
-  poles: Pole[];
+  poles: Pick<Pole, "id" | "nom">[];
   isGerant: boolean;
   defaultPoleId: number | null;
   /** Fournisseur présélectionné (fiche fournisseur). */
@@ -41,35 +44,62 @@ export function NouvelleCommandeButton({
         <Plus aria-hidden />
         {children}
       </Button>
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent
-          title="Nouvelle commande"
-          description="La commande est créée en brouillon : vous ajoutez ensuite les produits."
-        >
-          <Form {...props} />
-        </SheetContent>
-      </Sheet>
+      <NouvelleCommandeSheet {...props} open={open} onOpenChange={setOpen} />
     </>
   );
 }
 
-function Form({ fournisseurs, poles, isGerant, defaultPoleId, fournisseurId }: Props) {
+/** Tiroir de création d'un brouillon, aussi ouvert par « + Ajouter », la palette et la touche N. */
+export function NouvelleCommandeSheet({
+  open,
+  onOpenChange,
+  ...props
+}: Props & { open: boolean; onOpenChange: (open: boolean) => void }) {
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        title="Nouvelle commande"
+        description="La commande est créée en brouillon : vous ajoutez ensuite les produits."
+      >
+        <Form {...props} onDone={() => onOpenChange(false)} />
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function Form({
+  fournisseurs,
+  poles,
+  isGerant,
+  defaultPoleId,
+  fournisseurId,
+  onDone,
+}: Props & { onDone: () => void }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [serverError, setServerError] = useState<string | null>(null);
+  const vierge: CommandeCreationInput = {
+    fournisseur_id: fournisseurId ?? "",
+    pole_id: defaultPoleId ?? poles[0]?.id ?? "",
+    date_livraison_prevue: "",
+    commentaire: "",
+  };
+  const form = useForm<CommandeCreationInput, unknown, CommandeCreationValues>({
+    resolver: zodResolver(commandeCreationSchema),
+    defaultValues: vierge,
+  });
   const {
     register,
     handleSubmit,
     setError,
     formState: { errors },
-  } = useForm<CommandeCreationInput, unknown, CommandeCreationValues>({
-    resolver: zodResolver(commandeCreationSchema),
-    defaultValues: {
-      fournisseur_id: fournisseurId ?? "",
-      pole_id: defaultPoleId ?? poles[0]?.id ?? "",
-      date_livraison_prevue: "",
-      commentaire: "",
-    },
+  } = form;
+  const { utilisateurId } = useQuickAdd();
+  // un brouillon par pôle proposé : rouvrir le tiroir sous un autre filtre de pôle repart de zéro
+  const brouillon = useFormDraft(form, {
+    cle: `commande-${vierge.pole_id}`,
+    utilisateurId,
+    actif: !fournisseurId,
   });
 
   const onSubmit = handleSubmit((values) => {
@@ -83,17 +113,28 @@ function Form({ fournisseurs, poles, isGerant, defaultPoleId, fournisseurId }: P
         return;
       }
       notify(result);
+      brouillon.clear();
+      onDone();
       router.push(`/commandes/${result.data.id}`);
     });
   });
 
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-1 flex-col gap-4">
+      {brouillon.repris && <BrouillonBanner onEffacer={() => brouillon.discard(vierge)} />}
       <FormField id="fournisseur_id" label="Fournisseur" error={errors.fournisseur_id?.message}>
         <Select
           id="fournisseur_id"
+          autoFocus={!fournisseurId}
           aria-invalid={!!errors.fournisseur_id}
           {...register("fournisseur_id")}
+          onKeyDown={(e) => {
+            // Entrée sur la liste fermée valide le formulaire (une liste ne le fait pas d'elle-même)
+            if (e.key === "Enter") {
+              e.preventDefault();
+              if (!pending && !e.repeat) void onSubmit();
+            }
+          }}
         >
           <option value="">Choisissez un fournisseur</option>
           {fournisseurs.map((f) => (

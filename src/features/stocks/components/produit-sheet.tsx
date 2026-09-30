@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
@@ -11,16 +11,19 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
+import { BrouillonBanner } from "@/components/feedback/brouillon-banner";
 import { notify } from "@/components/feedback/notify";
 import { FormField } from "@/features/auth/form-field";
+import { useQuickAdd } from "@/features/quick-add/context";
+import { useFormDraft } from "@/hooks/use-form-draft";
 import type { Produit } from "@/types/models";
-import type { Referentiels } from "../queries";
+import type { ReferentielsAjout } from "@/features/quick-add/types";
 import { createProduit, updateProduit } from "../actions";
 import { UNITE_OPTIONS } from "../labels";
 import { produitSchema, type ProduitInput, type ProduitValues } from "../schemas";
 
 type Props = {
-  referentiels: Referentiels;
+  referentiels: ReferentielsAjout;
   isGerant: boolean;
   defaultPoleId: number | null;
   produit?: Produit;
@@ -69,15 +72,7 @@ function ProduitForm({
     notes: "",
   });
 
-  const {
-    register,
-    handleSubmit,
-    control,
-    reset,
-    setFocus,
-    setError,
-    formState: { errors },
-  } = useForm<ProduitInput, unknown, ProduitValues>({
+  const form = useForm<ProduitInput, unknown, ProduitValues>({
     resolver: zodResolver(produitSchema),
     defaultValues: produit
       ? {
@@ -96,6 +91,27 @@ function ProduitForm({
         }
       : blank(firstPole),
   });
+  const {
+    register,
+    handleSubmit,
+    control,
+    reset,
+    setFocus,
+    setError,
+    formState: { errors },
+  } = form;
+  const { utilisateurId } = useQuickAdd();
+  const brouillon = useFormDraft(form, {
+    // un brouillon par pôle proposé : rouvrir le tiroir sous un autre filtre de pôle repart de zéro
+    cle: `produit-${firstPole}`,
+    utilisateurId,
+    actif: !editing,
+  });
+  // « Enregistrer et ajouter un autre » : le curseur revient sur le nom une fois le formulaire réaffiché
+  const [enchaines, setEnchaines] = useState(0);
+  useEffect(() => {
+    if (enchaines > 0) setFocus("nom");
+  }, [enchaines, setFocus]);
   const poleId = Number(useWatch({ control, name: "pole_id" }));
   const categories = referentiels.categories.filter((c) => c.pole_id === poleId);
   const lieux = referentiels.lieux.filter((l) => l.pole_id === poleId);
@@ -114,6 +130,7 @@ function ProduitForm({
           return;
         }
         notify(result);
+        brouillon.clear();
         router.refresh();
         if (another) {
           // « Enregistrer et ajouter un autre » : on garde pôle, unité, catégorie, lieu et fournisseur.
@@ -124,13 +141,16 @@ function ProduitForm({
             lieu_stockage_id: values.lieu_stockage_id ?? "",
             fournisseur_principal_id: values.fournisseur_principal_id ?? "",
           });
-          setFocus("nom");
+          setEnchaines((n) => n + 1);
         } else onDone();
       });
     });
 
   return (
     <form onSubmit={submit(false)} noValidate className="flex flex-1 flex-col gap-4">
+      {brouillon.repris && (
+        <BrouillonBanner onEffacer={() => brouillon.discard(blank(firstPole) as ProduitInput)} />
+      )}
       <FormField id="nom" label="Nom du produit" error={errors.nom?.message}>
         <Input
           id="nom"

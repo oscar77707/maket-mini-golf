@@ -31,6 +31,9 @@ export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (!data.user && !isPublicPath(pathname)) {
+    // une requête d'interface (fetch) reçoit une réponse JSON plutôt qu'une page de connexion
+    if (pathname.startsWith("/api/"))
+      return NextResponse.json({ message: "Session expirée." }, { status: 401 });
     const url = request.nextUrl.clone();
     url.pathname = "/connexion";
     url.search = "";

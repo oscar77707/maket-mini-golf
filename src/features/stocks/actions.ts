@@ -17,7 +17,10 @@ import {
   produitSchema,
 } from "./schemas";
 
-const refresh = () => revalidatePath("/stocks", "layout");
+const refresh = () => {
+  revalidatePath("/stocks", "layout");
+  revalidatePath("/tableau-de-bord");
+};
 const round3 = (n: number) => Math.round(n * 1000) / 1000;
 const fmt = (n: number) => new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 3 }).format(n);
 

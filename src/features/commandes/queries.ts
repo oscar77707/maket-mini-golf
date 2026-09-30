@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { todayParis } from "@/lib/dates";
 import { fetchAll, inChunks } from "@/lib/supabase/paginate";
 import {
   dateOrUndefined,
@@ -40,6 +41,8 @@ export type CommandeFilters = {
   q: string;
   du?: string;
   au?: string;
+  /** Livraisons prévues aujourd'hui sur des commandes envoyées (carte du tableau de bord). */
+  attendues: boolean;
 };
 
 export function parseCommandeFilters(params: SearchParams, poleId: number | null): CommandeFilters {
@@ -50,12 +53,14 @@ export function parseCommandeFilters(params: SearchParams, poleId: number | null
     q: sanitizeSearch(first(params.q)),
     du: dateOrUndefined(first(params.du)),
     au: dateOrUndefined(first(params.au)),
+    attendues: first(params.attendues) === "aujourdhui",
   };
 }
 
 /** Ce dont les filtres ont besoin d'un constructeur de requête PostgREST (chaque méthode renvoie le même type). */
 interface Filtrable<Self> {
   eq(column: string, value: string | number): Self;
+  in(column: string, values: string[]): Self;
   or(filters: string): Self;
   gte(column: string, value: string): Self;
   lt(column: string, value: string): Self;
@@ -65,6 +70,10 @@ interface Filtrable<Self> {
 function baseFilters<Q extends Filtrable<Q>>(query: Q, f: CommandeFilters): Q {
   let q = query;
   if (f.poleId) q = q.eq("pole_id", f.poleId);
+  if (f.attendues)
+    q = q
+      .in("statut", ["envoyee", "confirmee", "en_retard"])
+      .eq("date_livraison_prevue", todayParis());
   if (f.fournisseurId) q = q.eq("fournisseur_id", f.fournisseurId);
   if (f.q) q = q.or(`reference.ilike.%${f.q}%,fournisseur_nom.ilike.%${f.q}%`);
   if (f.du) q = q.gte("created_at", `${f.du}T00:00:00+00:00`);

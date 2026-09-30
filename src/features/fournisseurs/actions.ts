@@ -10,6 +10,7 @@ import { fournisseurProduitSchema, fournisseurSchema } from "./schemas";
 const refresh = () => {
   revalidatePath("/fournisseurs", "layout");
   revalidatePath("/commandes", "layout");
+  revalidatePath("/tableau-de-bord");
 };
 
 function fournisseurError(error: { code?: string; message?: string }): ServerResult<never> {

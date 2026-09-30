@@ -86,7 +86,9 @@ export function CommandesFilters({
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => update({ q: null, fournisseur: null, du: null, au: null, attendues: null })}
+          onClick={() =>
+            update({ q: null, fournisseur: null, du: null, au: null, attendues: null })
+          }
         >
           <X aria-hidden />
           Effacer les filtres

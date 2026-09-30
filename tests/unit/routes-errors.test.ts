@@ -26,14 +26,15 @@ describe("isPublicPath", () => {
 describe("homePathFor et navigation par rôle", () => {
   it("dirige chaque rôle vers sa page d'accueil", () => {
     expect(homePathFor("gerant")).toBe("/tableau-de-bord");
-    expect(homePathFor("responsable")).toBe("/stocks");
+    expect(homePathFor("responsable")).toBe("/tableau-de-bord");
     expect(homePathFor("salarie")).toBe("/stocks");
   });
   it("ne montre au salarié que les stocks", () => {
     expect(navFor("salarie").map((i) => i.href)).toEqual(["/stocks"]);
   });
-  it("cache appels et paramètres au responsable", () => {
+  it("cache appels et paramètres au responsable, qui a un tableau de bord pour son pôle", () => {
     const hrefs = navFor("responsable").map((i) => i.href);
+    expect(hrefs).toContain("/tableau-de-bord");
     expect(hrefs).not.toContain("/appels");
     expect(hrefs).not.toContain("/parametres");
   });

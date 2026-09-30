@@ -1531,6 +1531,12 @@ export type Database = {
         };
         Returns: Json;
       };
+      indicateurs_tableau_de_bord: {
+        Args: {
+          p_pole_id?: number;
+        };
+        Returns: Json;
+      };
       soumettre_inventaire: {
         Args: {
           p_inventaire_id: string;

@@ -17,9 +17,9 @@ export function isPublicPath(pathname: string) {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
-/** Page d'accueil après connexion : le gérant arrive sur le tableau de bord, les autres sur les stocks. */
+/** Page d'accueil après connexion : tableau de bord pour le gérant et les responsables, stocks pour les salariés. */
 export function homePathFor(role: Role) {
-  return role === "gerant" ? "/tableau-de-bord" : "/stocks";
+  return role === "salarie" ? "/stocks" : "/tableau-de-bord";
 }
 
 /** N'accepte que des chemins internes pour éviter les redirections ouvertes. */

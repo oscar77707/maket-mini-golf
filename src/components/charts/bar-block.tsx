@@ -121,23 +121,25 @@ export function BarBlock({
             </BarChart>
           </ResponsiveContainer>
         </div>
-        <table className="sr-only">
-          <caption>{title}</caption>
-          <thead>
-            <tr>
-              <th scope="col">Catégorie</th>
-              <th scope="col">Valeur</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.map((d) => (
-              <tr key={d.label}>
-                <th scope="row">{d.tooltip ?? d.label}</th>
-                <td>{format(d.value)}</td>
+        <div className="sr-only">
+          <table>
+            <caption>{title}</caption>
+            <thead>
+              <tr>
+                <th scope="col">Catégorie</th>
+                <th scope="col">Valeur</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {data.map((d) => (
+                <tr key={d.label}>
+                  <th scope="row">{d.tooltip ?? d.label}</th>
+                  <td>{format(d.value)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </CardContent>
     </Card>
   );

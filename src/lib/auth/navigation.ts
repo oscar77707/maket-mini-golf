@@ -25,7 +25,7 @@ export const NAV_ITEMS: NavItem[] = [
     label: "Tableau de bord",
     shortLabel: "Accueil",
     icon: LayoutDashboard,
-    roles: ["gerant"],
+    roles: ["gerant", "responsable"],
   },
   {
     href: "/stocks",

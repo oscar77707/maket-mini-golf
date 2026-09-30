@@ -26,6 +26,7 @@ const refresh = () => {
   revalidatePath("/commandes", "layout");
   revalidatePath("/stocks", "layout");
   revalidatePath("/fournisseurs", "layout");
+  revalidatePath("/tableau-de-bord");
 };
 
 // -----------------------------------------------------------------------------------------------

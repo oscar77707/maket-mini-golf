@@ -49,7 +49,12 @@ export default async function CommandesPage({
   const isGerant = user.profile.role === "gerant";
   const poleById = new Map(referentiels.poles.map((p) => [p.id, p]));
   const filtered = Boolean(
-    filters.statut || filters.q || filters.fournisseurId || filters.du || filters.au,
+    filters.statut ||
+    filters.q ||
+    filters.fournisseurId ||
+    filters.du ||
+    filters.au ||
+    filters.attendues,
   );
 
   return (

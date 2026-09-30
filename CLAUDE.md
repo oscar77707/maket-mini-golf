@@ -51,7 +51,8 @@ src/features/appels/  labels, phone (masquage + empreinte HMAC), webhook-calls (
 src/components/table/url-search.tsx  recherche de liste dans l'URL (se vide avec « Effacer les filtres »)
 src/components/realtime/realtime-refresh.tsx  recharge la page quand des tables Supabase changent (Realtime)
 src/components/charts/bar-block.tsx  histogramme Recharts accessible (résumé + tableau masqué)
-src/lib/poles.ts  `getPoles()` (pôles actifs, une lecture par requête)
+src/lib/poles.ts  `getPoles()` (pôles actifs, une lecture par requête) ; src/lib/urls.ts  `avecPole()` (ajoute ?pole= à une adresse)
+src/features/tableau-de-bord/  queries (indicateurs, listes, graphiques), todo (« À faire aujourd'hui »), components (cartes, courbe, bouton « Valider et envoyer »)
 src/lib/action-context.ts  context(...rôles) des Server Actions (session, profil, contrôle du rôle) ; src/lib/zod-helpers.ts  décimaux français, textes optionnels
 scripts/               faux-n8n.mjs (faux serveur n8n), appel-n8n.mjs (appel entrant signé)
 docs/n8n.md            contrat des échanges avec n8n
@@ -111,7 +112,17 @@ src/types/models.ts    alias métier (Role, PoleCode, ProduitStock...)
 - Purge : `app.purger_donnees()` supprime les appels de plus de `parametres.retention_appels_jours` (90 par défaut) ; planifiée à 3 h 15 par `pg_cron` si l'extension est disponible (la migration tente de l'activer).
 - `useUrlState.update` part de l'adresse demandée et pas encore affichée : deux changements rapprochés (deux dates) ne s'écrasent plus.
 
+## Tableau de bord (étape 5)
+
+- `/tableau-de-bord` : gérant (tous les pôles ou filtre de pôle) et responsable (son pôle seulement, `?pole=` ignoré) ; le salarié n'y a pas accès (page `requireRole("gerant", "responsable")`). Après connexion, gérant et responsable arrivent ici (`homePathFor`), le salarié sur Stocks.
+- Six cartes cliquables (sous le seuil, à valider, livraisons du jour, en retard, DLC, appels du jour pour le gérant / valeur du stock pour le responsable) qui mènent aux listes filtrées : `/commandes?statut=a_valider`, `/commandes?attendues=aujourdhui` (nouveau filtre : commandes envoyées, confirmées ou en retard dont la livraison est prévue aujourd'hui), `/commandes?statut=en_retard`, `/stocks/alertes`, `/appels?du=…&au=…`. Les liens gardent le pôle choisi (`avecPole`).
+- Tous les chiffres viennent d'une seule fonction SQL `indicateurs_tableau_de_bord(pole)` (RLS appliquée : chacun compte ce qu'il voit). « À faire aujourd'hui » se déduit de ces chiffres (`todo.ts`).
+- Critère n°2 : chaque commande « à valider » a un bouton « Valider et envoyer » (gérant) qui appelle `envoyerCommande` en un clic ; si n8n échoue, message d'erreur et la commande reste dans la liste. Le responsable voit « En attente du gérant ».
+- Graphiques : valeur du stock sur 30 jours (`evolution_valeur_stock`, mouvements valorisés au prix de chaque mouvement) et top 10 des consommés (`top_produits_consommes`, classé par valeur d'achat, sorties + pertes). Chaque graphique a un résumé pour lecteurs d'écran et un tableau masqué (`sr-only` sur un `div`, pas sur le `table`, qui déborderait).
+- « Aujourd'hui » = jour de Paris partout en base (`app.aujourdhui()`, migration `20260930000100`), y compris `v_commandes.est_en_retard` et `v_alertes_dlc`.
+- Temps réel : `RealtimeRefresh` (Supabase Realtime, `router.refresh()` après 700 ms) sur commandes, mouvements, livraisons, lots DLC, inventaires et appels.
+
 ## État d'avancement
 
-- Étape 1 (setup, auth, rôles) : faite. Étape 2 (stocks) : faite. Étape 3 (fournisseurs, commandes, n8n) : faite. Étape 4 (journal des appels IA) : faite, voir README. Étapes 5 à 7 : à faire.
+- Étape 1 (setup, auth, rôles) : faite. Étape 2 (stocks) : faite. Étape 3 (fournisseurs, commandes, n8n) : faite. Étape 4 (journal des appels IA) : faite. Étape 5 (tableau de bord) : faite, voir README. Étapes 6 et 7 : à faire.
 - Essais réalisés sans Docker : Postgres 16 réel + un bouchon PostgREST/GoTrue local (avec clé service_role), navigateur piloté par Playwright, faux n8n en https. Le vrai Supabase (envoi d'e-mails, création des comptes de démo par `supabase db reset`) et un vrai n8n restent à vérifier au premier démarrage.

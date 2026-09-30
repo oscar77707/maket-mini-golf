@@ -126,3 +126,19 @@ Après chaque nouvelle migration : `supabase gen types typescript --local > src/
 3. **Gérant** (`gerant@palmeraie.test`) : menu « Appels IA » ; l'appel de test est en tête de la liste, numéro masqué (`06 •• •• •• 78`). Essayer les onglets d'issue, la recherche, une date, le filtre de pôle ; ouvrir un appel puis un autre appel du même numéro ; onglet « Statistiques » : 7 / 30 / 90 jours, changer de pôle.
 4. **Droits** : avec `resp.restaurant@palmeraie.test` ou `salarie.restaurant@palmeraie.test`, le menu n'a pas « Appels IA » et l'adresse `/appels` renvoie « Accès refusé ».
 5. **Purge** : dans l'éditeur SQL, `select app.purger_donnees();` supprime les appels de plus de 90 jours.
+
+## Ce que fait l'étape 5 (Tableau de bord)
+
+- **Gérant** : six cartes cliquables (produits sous le seuil, commandes à valider, livraisons attendues aujourd'hui, commandes en retard, DLC à surveiller, appels du jour), la liste « À faire aujourd'hui », les commandes à valider avec un bouton **« Valider et envoyer »** sur chaque ligne (un seul clic), les livraisons du jour, les produits sous le seuil, les derniers appels, la courbe de la valeur du stock sur 30 jours et le top 10 des produits consommés. Filtre de pôle en haut.
+- **Responsable** : la même page limitée à son pôle (ses commandes attendent le gérant, avec la mention « En attente du gérant » ; pas d'appels).
+- Les chiffres se mettent à jour tout seuls (Supabase Realtime) : une commande soumise ou un appel reçu apparaît sans recharger la page.
+- Le responsable arrive maintenant sur le tableau de bord après connexion ; le salarié reste sur les Stocks.
+
+## Comment tester l'étape 5
+
+1. `supabase db reset` (nouvelle migration `20260930000100`), puis lancer le faux n8n (`node scripts/faux-n8n.mjs`, voir étape 3) et `npm run dev`.
+2. **Gérant** (`gerant@palmeraie.test`) : après connexion, vous arrivez sur le tableau de bord. Cliquer chaque carte : elle ouvre la liste correspondante déjà filtrée. Choisir un pôle en haut : tous les chiffres et les liens suivent.
+3. **Critère 2 (valider en un clic)** : dans « Commandes à valider », cliquer une seule fois sur « Valider et envoyer » : la commande disparaît de la liste, passe à « Envoyée » et le faux n8n l'affiche. Arrêter le faux n8n et recommencer sur une autre : message d'erreur, la commande reste à valider ; relancer n8n et recliquer.
+4. **Responsable** (`resp.restaurant@palmeraie.test`) : le tableau de bord ne montre que le Restaurant, sans bouton « Valider et envoyer ».
+5. **Temps réel** : garder le tableau de bord du gérant ouvert, envoyer un appel avec `npm run appel-test` : la carte « Appels aujourd'hui » et « Derniers appels » se mettent à jour d'eux-mêmes ; de même quand un responsable soumet une commande.
+6. **Salarié** : pas de « Tableau de bord » dans le menu, l'adresse `/tableau-de-bord` renvoie « Accès refusé ».

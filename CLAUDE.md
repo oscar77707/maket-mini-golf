@@ -45,8 +45,13 @@ src/hooks/use-url-state.ts    état des tableaux (filtres, tri, page) stocké da
 src/features/stocks/   queries.ts (lectures), actions.ts, schemas.ts, import-parse.ts / import-plan.ts, components/
 src/features/fournisseurs/  labels, schemas, queries, actions, components (fiche, produits associés, prix)
 src/features/commandes/  labels, schemas (dont OrderSendPayload), queries, actions, n8n.ts (envoi signé), webhook-orders.ts (événements entrants), components
-src/app/api/webhooks/n8n/orders/  route entrante n8n (jeton + signature + idempotence), chemin public (`isWebhookPath`)
-src/lib/webhooks/signature.ts  signature HMAC, vérification en temps constant, fenêtre de 5 minutes
+src/app/api/webhooks/n8n/{orders,calls}/  routes entrantes n8n (une ligne chacune : `handleInboundWebhook`), chemin public (`isWebhookPath`)
+src/lib/webhooks/  signature.ts (HMAC, temps constant, fenêtre de 5 minutes), handler.ts (jeton + signature + idempotence + validation Zod + traitement), outcome.ts (`reply`, `issuesOf`)
+src/features/appels/  labels, phone (masquage + empreinte HMAC), webhook-calls (schéma Zod + enregistrement), queries, periode, transcription, components
+src/components/table/url-search.tsx  recherche de liste dans l'URL (se vide avec « Effacer les filtres »)
+src/components/realtime/realtime-refresh.tsx  recharge la page quand des tables Supabase changent (Realtime)
+src/components/charts/bar-block.tsx  histogramme Recharts accessible (résumé + tableau masqué)
+src/lib/poles.ts  `getPoles()` (pôles actifs, une lecture par requête)
 src/lib/action-context.ts  context(...rôles) des Server Actions (session, profil, contrôle du rôle) ; src/lib/zod-helpers.ts  décimaux français, textes optionnels
 scripts/               faux-n8n.mjs (faux serveur n8n), appel-n8n.mjs (appel entrant signé)
 docs/n8n.md            contrat des échanges avec n8n
@@ -98,7 +103,15 @@ src/types/models.ts    alias métier (Role, PoleCode, ProduitStock...)
 - Réappro : « Commander tous les produits en alerte » ne concerne que les produits sous le seuil (rouge) ayant un fournisseur principal, et ignore ceux déjà dans un brouillon ou une commande en cours (`retirerDejaCommandes`).
 - Reporté : photo du bon de livraison, lignes hors commande à la réception, paramétrage de l'adresse du webhook dans l'interface (étape 6). Le minimum de commande avertit sans bloquer.
 
+## Module Appels IA (étape 4)
+
+- Réservé au gérant : la RLS ne donne la lecture qu'à lui (aucune écriture depuis le navigateur), les pages font `requireRole("gerant")`. Écrans : journal (`/appels`, onglets d'issue avec compteurs, recherche résumé/transcription/numéro, dates en jours de Paris, filtre de pôle global), détail (`/appels/[id]`, résumé, transcription en répliques, autres appels du même numéro), statistiques (`/appels/statistiques`, 7/30/90 jours ou dates libres, par jour, heure, pôle, issue, taux de transfert).
+- Entrée : `POST /api/webhooks/n8n/calls` (contrat dans `docs/n8n.md`). Le numéro est reçu en clair mais **jamais stocké** : version masquée (`06 •• •• •• 42`) + empreinte HMAC (`PHONE_HASH_SECRET`, facultative : sans elle pas de regroupement par numéro). Idempotence par `X-Idempotency-Key` **et** par `id_externe` (unique). Essai rapide : `npm run appel-test`.
+- Statistiques : fonction SQL `stats_appels(debut, fin, pole)` (migration `20260930000000`), bornes calculées à l'heure de Paris.
+- Purge : `app.purger_donnees()` supprime les appels de plus de `parametres.retention_appels_jours` (90 par défaut) ; planifiée à 3 h 15 par `pg_cron` si l'extension est disponible (la migration tente de l'activer).
+- `useUrlState.update` part de l'adresse demandée et pas encore affichée : deux changements rapprochés (deux dates) ne s'écrasent plus.
+
 ## État d'avancement
 
-- Étape 1 (setup, auth, rôles) : faite. Étape 2 (stocks) : faite. Étape 3 (fournisseurs, commandes, n8n) : faite, voir README. Étapes 4 à 7 : à faire (4 : journal des appels, route `POST /api/webhooks/n8n/calls`, conservation 90 jours ; le chemin `/api/webhooks/` est déjà public).
+- Étape 1 (setup, auth, rôles) : faite. Étape 2 (stocks) : faite. Étape 3 (fournisseurs, commandes, n8n) : faite. Étape 4 (journal des appels IA) : faite, voir README. Étapes 5 à 7 : à faire.
 - Essais réalisés sans Docker : Postgres 16 réel + un bouchon PostgREST/GoTrue local (avec clé service_role), navigateur piloté par Playwright, faux n8n en https. Le vrai Supabase (envoi d'e-mails, création des comptes de démo par `supabase db reset`) et un vrai n8n restent à vérifier au premier démarrage.

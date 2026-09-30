@@ -24,7 +24,7 @@ Les e-mails de réinitialisation du mot de passe arrivent dans Inbucket : http:/
 ## Installation (Supabase Cloud)
 
 1. Créer un projet (région UE), puis exécuter `supabase/migrations/*.sql` dans l'éditeur SQL (ou `supabase link` puis `supabase db push`).
-2. Activer l'extension `pg_cron` (Database > Extensions) **avant** la migration si vous voulez la purge automatique des appels ; sinon planifier `select app.purger_donnees()` chaque nuit.
+2. La purge nocturne des appels (90 jours) repose sur l'extension `pg_cron` : la migration `20260930000000` tente de l'activer. Si Supabase la refuse, l'activer dans Database > Extensions puis relancer la fin de cette migration (bloc `do $$ … cron.schedule`), ou planifier `select app.purger_donnees()` chaque nuit.
 3. Auth > URL : ajouter l'adresse du site et `/auth/callback` aux URL de redirection autorisées ; désactiver les inscriptions libres.
 4. Créer le premier gérant (Auth > Users) avec, dans « app metadata » : `{"role": "gerant"}`. Les autres comptes s'inviteront depuis Paramètres (étape 6).
 5. Ne pas charger `seed.sql` en production (comptes de démo).
@@ -110,3 +110,19 @@ Après chaque nouvelle migration : `supabase gen types typescript --local > src/
 5. **Réception** (critère « moins d'une minute ») : en responsable, sur une commande envoyée, « Recevoir la livraison » ; changer une quantité (le motif de l'écart est demandé), renseigner la DLC d'un produit frais, « Valider la livraison » : le stock du produit est à jour et la commande « Livrée ».
 6. **n8n vers l'application** : `N8N_INBOUND_TOKEN=… N8N_INBOUND_SECRET=… APP_URL=http://localhost:3000 node scripts/appel-n8n.mjs '{"evenement":"status.update","reference":"CMD-000082","statut":"confirmee"}'` ; rejouer avec la même clé d'idempotence (2e argument) : réponse « doublon » ; un jeton faux donne 401 (autres exemples dans [docs/n8n.md](docs/n8n.md)).
 7. **Droits** : un salarié n'a ni « Commandes » ni « Fournisseurs » ; un responsable ne voit que les commandes de son pôle.
+
+## Ce que fait l'étape 4 (Journal des appels IA)
+
+- **Journal** (gérant seulement) : date et heure, numéro masqué, durée, pôle, résumé, issue ; onglets par issue avec compteurs, recherche (résumé, transcription, numéro), filtre par jour, filtre de pôle en haut, pagination. Se met à jour tout seul quand un nouvel appel arrive (Supabase Realtime).
+- **Détail** : résumé, transcription en « Client / Standard IA », informations techniques, autres appels du même numéro.
+- **Statistiques** : appels par jour, par heure, par pôle et par issue, durée moyenne, taux de transfert, sur 7, 30 ou 90 jours ou des dates libres.
+- **Entrée n8n** : `POST /api/webhooks/n8n/calls` (jeton + signature + horodatage + idempotence). Le numéro de téléphone n'est jamais enregistré en clair. Contrat : [docs/n8n.md](docs/n8n.md).
+- **Purge** : les appels de plus de 90 jours sont supprimés chaque nuit (réglable à l'étape 6).
+
+## Comment tester l'étape 4
+
+1. `supabase db reset` (nouvelle migration), renseigner dans `.env.local` `N8N_INBOUND_TOKEN`, `N8N_INBOUND_SECRET`, `SUPABASE_SERVICE_ROLE_KEY` et `PHONE_HASH_SECRET` (des chaînes au hasard suffisent), puis `npm run dev`.
+2. **Envoyer un appel de test** : `npm run appel-test` (réponse `200` avec l'appel et son numéro masqué). Le relancer avec la même clé d'idempotence, ou avec un jeton faux, montre la réponse « doublon » ou `401` ; la version `curl` est dans [docs/n8n.md](docs/n8n.md).
+3. **Gérant** (`gerant@palmeraie.test`) : menu « Appels IA » ; l'appel de test est en tête de la liste, numéro masqué (`06 •• •• •• 78`). Essayer les onglets d'issue, la recherche, une date, le filtre de pôle ; ouvrir un appel puis un autre appel du même numéro ; onglet « Statistiques » : 7 / 30 / 90 jours, changer de pôle.
+4. **Droits** : avec `resp.restaurant@palmeraie.test` ou `salarie.restaurant@palmeraie.test`, le menu n'a pas « Appels IA » et l'adresse `/appels` renvoie « Accès refusé ».
+5. **Purge** : dans l'éditeur SQL, `select app.purger_donnees();` supprime les appels de plus de 90 jours.

@@ -2,18 +2,10 @@ import "server-only";
 import { z } from "zod";
 import { addDays, todayParis } from "@/lib/dates";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { reply, type WebhookOutcome } from "@/lib/webhooks/outcome";
 import type { TablesUpdate } from "@/types/database";
 
 type Admin = ReturnType<typeof createAdminClient>;
-
-export type WebhookOutcome = { status: 200 | 400 | 404 | 409; body: Record<string, unknown> };
-const reply = (
-  status: WebhookOutcome["status"],
-  body: Record<string, unknown>,
-): WebhookOutcome => ({
-  status,
-  body,
-});
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date attendue au format AAAA-MM-JJ.");
 
@@ -77,9 +69,6 @@ export const orderEventSchema = z.discriminatedUnion("evenement", [draftCreate, 
   error: "evenement doit valoir draft.create ou status.update.",
 });
 export type OrderEvent = z.infer<typeof orderEventSchema>;
-
-export const issuesOf = (error: z.ZodError) =>
-  error.issues.map((i) => ({ champ: i.path.join(".") || "corps", message: i.message }));
 
 const normalise = (s: string) =>
   s

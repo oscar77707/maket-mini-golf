@@ -1541,6 +1541,7 @@ export type Database = {
         Args: {
           p_debut: string;
           p_fin: string;
+          p_pole_id?: number;
         };
         Returns: Json;
       };

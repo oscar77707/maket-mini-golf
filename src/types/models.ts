@@ -69,3 +69,17 @@ export type StatsFournisseur = {
   taux_conformite_pct: number | null;
   montant_total_ht: number | null;
 };
+
+export type IssueAppel = Enums<"issue_appel">;
+export type AppelIA = Tables<"appels_ia">;
+
+/** Retour de la fonction SQL `stats_appels`. */
+export type StatsAppels = {
+  total: number;
+  duree_moyenne_s: number | null;
+  taux_transfert_pct: number | null;
+  par_jour: { jour: string; nb: number }[];
+  par_heure: { heure: number; nb: number }[];
+  par_pole: { pole: string; nb: number }[];
+  par_issue: { issue: IssueAppel; nb: number }[];
+};

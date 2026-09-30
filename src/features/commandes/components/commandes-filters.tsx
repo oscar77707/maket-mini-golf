@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef } from "react";
-import { Search, X } from "lucide-react";
+import { X } from "lucide-react";
+import { UrlSearch } from "@/components/table/url-search";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -20,9 +20,8 @@ export function CommandesFilters({
   fournisseurs: { id: string; nom: string }[];
 }) {
   const { params, update, pending } = useUrlState();
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const statut = params.get("statut") ?? "toutes";
-  const active = ["q", "fournisseur", "du", "au"].some((k) => params.get(k));
+  const active = ["q", "fournisseur", "du", "au", "attendues"].some((k) => params.get(k));
 
   return (
     <div className="space-y-3" aria-busy={pending}>
@@ -51,25 +50,13 @@ export function CommandesFilters({
           );
         })}
       </div>
+      {params.get("attendues") === "aujourdhui" && (
+        <p className="rounded-md border border-primary/40 bg-primary/5 px-3 py-2 text-sm">
+          Livraisons prévues aujourd&apos;hui (commandes envoyées ou confirmées).
+        </p>
+      )}
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[1fr_14rem_10rem_10rem]">
-        <div className="relative">
-          <Search
-            aria-hidden
-            className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-muted-foreground"
-          />
-          <Input
-            type="search"
-            aria-label="Rechercher une commande"
-            placeholder="Numéro ou fournisseur"
-            className="pl-10"
-            defaultValue={params.get("q") ?? ""}
-            onChange={(e) => {
-              clearTimeout(timer.current);
-              const value = e.target.value;
-              timer.current = setTimeout(() => update({ q: value.trim() || null }), 300);
-            }}
-          />
-        </div>
+        <UrlSearch label="Rechercher une commande" placeholder="Numéro ou fournisseur" />
         <Select
           aria-label="Filtrer par fournisseur"
           value={params.get("fournisseur") ?? ""}
@@ -99,7 +86,7 @@ export function CommandesFilters({
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => update({ q: null, fournisseur: null, du: null, au: null })}
+          onClick={() => update({ q: null, fournisseur: null, du: null, au: null, attendues: null })}
         >
           <X aria-hidden />
           Effacer les filtres

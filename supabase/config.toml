@@ -22,3 +22,9 @@ minimum_password_length = 8
 
 [auth.email]
 enable_confirmations = false
+
+# Invitation envoyée par le gérant : le lien passe par /auth/callback avec un jeton à usage unique
+# (le serveur ne peut pas faire le flux PKCE que Supabase utilise par défaut). Voir README, étape 6.
+[auth.email.template.invite]
+subject = "Votre accès à La Palmeraie"
+content_path = "./templates/invite.html"

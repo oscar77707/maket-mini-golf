@@ -39,7 +39,17 @@ export function isAllowedWebhookUrl(
 }
 
 /** Envoie la commande à n8n, signée (HMAC-SHA256 de « horodatage.corps »). Ne lève jamais d'exception. */
-export async function postOrderToN8n(url: string, payload: OrderSendPayload): Promise<SendResult> {
+export function postOrderToN8n(url: string, payload: OrderSendPayload): Promise<SendResult> {
+  // n8n peut ignorer un second appel pour la même commande si la réponse s'est perdue
+  return postSignedToN8n(url, payload, `order.send:${payload.commandeId}`);
+}
+
+/** POST JSON signé vers n8n (commande, test de connexion). Ne lève jamais d'exception. */
+export async function postSignedToN8n(
+  url: string,
+  payload: object,
+  idempotencyKey: string,
+): Promise<SendResult> {
   const secret = process.env.N8N_OUTBOUND_SECRET?.trim();
   if (!secret)
     return { ok: false, status: null, message: "N8N_OUTBOUND_SECRET n'est pas configuré." };
@@ -61,8 +71,7 @@ export async function postOrderToN8n(url: string, payload: OrderSendPayload): Pr
         "content-type": "application/json",
         [HEADER_TIMESTAMP]: timestamp,
         [HEADER_SIGNATURE]: sign(secret, timestamp, body),
-        // n8n peut ignorer un second appel pour la même commande si la réponse s'est perdue
-        [HEADER_IDEMPOTENCY]: `order.send:${payload.commandeId}`,
+        [HEADER_IDEMPOTENCY]: idempotencyKey,
       },
       body,
     });

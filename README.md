@@ -19,15 +19,19 @@ supabase db reset         # applique supabase/migrations puis supabase/seed.sql 
 npm run dev               # http://localhost:3000
 ```
 
-Les e-mails de réinitialisation du mot de passe arrivent dans Inbucket : http://127.0.0.1:54324.
+Les e-mails (réinitialisation du mot de passe, invitations) arrivent dans Inbucket : http://127.0.0.1:54324. Le modèle de l'e-mail d'invitation est déjà branché par `supabase/config.toml`.
 
 ## Installation (Supabase Cloud)
 
 1. Créer un projet (région UE), puis exécuter `supabase/migrations/*.sql` dans l'éditeur SQL (ou `supabase link` puis `supabase db push`).
 2. La purge nocturne des appels (90 jours) repose sur l'extension `pg_cron` : la migration `20260930000000` tente de l'activer. Si Supabase la refuse, l'activer dans Database > Extensions puis relancer la fin de cette migration (bloc `do $$ … cron.schedule`), ou planifier `select app.purger_donnees()` chaque nuit.
 3. Auth > URL : ajouter l'adresse du site et `/auth/callback` aux URL de redirection autorisées ; désactiver les inscriptions libres.
-4. Créer le premier gérant (Auth > Users) avec, dans « app metadata » : `{"role": "gerant"}`. Les autres comptes s'inviteront depuis Paramètres (étape 6).
-5. Ne pas charger `seed.sql` en production (comptes de démo).
+4. **E-mail d'invitation** (nécessaire pour inviter des personnes depuis Paramètres, étape 6) : Auth > Emails > modèle « Invite user » : remplacer le lien par
+   `{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=invite&next=%2Freinitialiser%3Finvitation%3D1`
+   (le texte complet est dans `supabase/templates/invite.html`). Sans cela, le lien de l'e-mail ne peut pas ouvrir de session côté serveur. Vérifier aussi que « Site URL » est l'adresse publique de l'application.
+5. Créer le premier gérant (Auth > Users) avec, dans « app metadata » : `{"role": "gerant"}`. Les autres comptes s'invitent depuis Paramètres > Utilisateurs.
+6. Ne pas charger `seed.sql` en production (comptes de démo).
+7. Storage : la migration de l'étape 6 crée le bucket public « logos » (500 Ko, PNG/JPEG/WebP, écriture réservée au gérant).
 
 ## Comptes de démonstration
 
@@ -62,7 +66,7 @@ Après chaque nouvelle migration : `supabase gen types typescript --local > src/
 
 1. `supabase db reset` puis `npm run dev`.
 2. Se connecter avec `gerant@palmeraie.test` : arrivée sur le tableau de bord, 6 entrées de menu, filtre de pôle en haut.
-3. Se connecter avec `resp.restaurant@palmeraie.test` : arrivée sur Stocks, ni « Appels IA » ni « Paramètres ». Ouvrir `/appels` renvoie vers « Accès refusé ».
+3. Se connecter avec `resp.restaurant@palmeraie.test` : arrivée sur Stocks (sur le tableau de bord depuis l'étape 5), ni « Appels IA » ni « Paramètres ». Ouvrir `/appels` renvoie vers « Accès refusé ».
 4. Se connecter avec un salarié sur téléphone : seule l'entrée « Stocks » existe dans la barre du bas.
 5. « Mot de passe oublié » : le lien arrive dans Inbucket et mène à « Nouveau mot de passe ».
 
@@ -142,3 +146,26 @@ Après chaque nouvelle migration : `supabase gen types typescript --local > src/
 4. **Responsable** (`resp.restaurant@palmeraie.test`) : le tableau de bord ne montre que le Restaurant, sans bouton « Valider et envoyer ».
 5. **Temps réel** : garder le tableau de bord du gérant ouvert, envoyer un appel avec `npm run appel-test` : la carte « Appels aujourd'hui » et « Derniers appels » se mettent à jour d'eux-mêmes ; de même quand un responsable soumet une commande.
 6. **Salarié** : pas de « Tableau de bord » dans le menu, l'adresse `/tableau-de-bord` renvoie « Accès refusé ».
+
+## Ce que fait l'étape 6 (Paramètres)
+
+Réservé au gérant (menu « Paramètres », six onglets ; le responsable et le salarié obtiennent « Accès refusé », et la base leur refuse aussi toute lecture ou écriture).
+
+- **Complexe** : nom, couleur principale et secondaire (refusées si le texte devient illisible), coordonnées, seuils d'alerte (jours avant la DLC, marge « orange »), logo (PNG, JPEG ou WebP de 500 Ko au plus, reconnu à son contenu), nom et couleur des trois pôles. Le nom, les couleurs et le logo s'appliquent tout de suite à toute l'application.
+- **Utilisateurs** : liste avec recherche et filtres (rôle, pôle, état). **Inviter** une personne (prénom, nom, e-mail, rôle, pôle, contrat saisonnier) : elle reçoit un e-mail, choisit son mot de passe et arrive avec les bons droits. La fiche permet de changer le rôle et le pôle (effet immédiat, sans reconnexion), renvoyer l'invitation, **désactiver** ou **réactiver** un compte (connexion bloquée), exporter les données de la personne et l'**anonymiser** (RGPD, confirmation à taper). On ne peut ni se désactiver, ni changer son propre rôle, ni retirer le dernier gérant.
+- **Horaires** : saisons (sans chevauchement), horaires des sept jours par pôle et par saison (fermé, ouverture, fermeture après minuit possible, « recopier le lundi »), fermetures exceptionnelles (un pôle ou tout le complexe).
+- **Stocks** : catégories de produits et lieux de stockage par pôle (ajouter, renommer, monter, descendre ; suppression refusée tant que des produits les utilisent).
+- **Intégrations** : adresse https du webhook n8n d'envoi des commandes (remplace la variable d'environnement quand elle est renseignée), bouton **Tester la connexion** (message signé `test.ping`), dernier échange et son code de réponse ; adresses des webhooks entrants, état des variables secrètes (jamais leur valeur), derniers messages reçus de n8n.
+- **Données et RGPD** : durées de conservation (appels 90 jours, journal 2 ans, réglables), **Purger maintenant** avec les quantités supprimées, **journal d'audit** (qui a fait quoi, filtres par type, texte et dates, détail avant/après, pagination).
+- **Mon compte** (tout le monde) : prénom, nom, téléphone, changement de mot de passe, téléchargement de ses données personnelles.
+
+## Comment tester l'étape 6
+
+1. `supabase db reset` (nouvelle migration `20260930000200`), `supabase start` si besoin, puis `npm run dev`. Les invitations arrivent dans Inbucket (http://127.0.0.1:54324).
+2. Se connecter avec `gerant@palmeraie.test`, menu **Paramètres**. **Complexe** : changer le nom et la couleur principale, enregistrer : l'en-tête et les boutons changent aussitôt. Envoyer un logo (PNG).
+3. **Utilisateurs** > « Inviter une personne » : saisir une adresse de test, rôle Salarié, pôle Mini-golf. Ouvrir Inbucket, cliquer le lien, choisir un mot de passe : la personne arrive sur les Stocks du mini-golf, avec le seul menu « Stocks ». Revenir sur sa fiche, la passer Responsable du Restaurant : après un rechargement, son menu et ses données changent, sans reconnexion.
+4. Sur sa fiche : « Désactiver le compte » (elle ne peut plus se connecter), puis « Réactiver ». « Exporter ses données » télécharge un fichier JSON. « Anonymiser » efface son identité (taper ANONYMISER).
+5. **Horaires** : créer une saison qui chevauche une autre (refusée), régler les horaires d'un pôle, ajouter une fermeture. **Stocks** : ajouter, renommer, déplacer une catégorie ; essayer de supprimer une catégorie utilisée (refusé).
+6. **Intégrations** : lancer le faux n8n (`node scripts/faux-n8n.mjs`, voir étape 3), saisir son adresse https, « Tester la connexion » ; l'arrêter et retester : « n8n est injoignable ».
+7. **Données et RGPD** : régler la conservation, « Purger maintenant », parcourir le journal d'audit.
+8. Avec `resp.restaurant@palmeraie.test` ou un salarié : pas de menu « Paramètres », `/parametres` renvoie « Accès refusé ». Chacun garde « Mon compte » (changer son mot de passe, télécharger ses données).

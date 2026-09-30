@@ -52,6 +52,8 @@ src/components/table/url-search.tsx  recherche de liste dans l'URL (se vide avec
 src/components/realtime/realtime-refresh.tsx  recharge la page quand des tables Supabase changent (Realtime)
 src/components/charts/bar-block.tsx  histogramme Recharts accessible (résumé + tableau masqué)
 src/lib/poles.ts  `getPoles()` (pôles actifs, une lecture par requête) ; src/lib/urls.ts  `avecPole()` (ajoute ?pole= à une adresse)
+src/features/parametres/  actions par domaine, schemas, queries, labels, export RGPD, components (voir « Paramètres (étape 6) ») ; src/features/compte/  Mon compte
+src/lib/colors.ts  contraste des couleurs ; src/lib/logo.ts  adresse du logo et détection du type d'image ; src/lib/audit.ts  écriture d'événements dans le journal
 src/features/tableau-de-bord/  queries (indicateurs, listes, graphiques), todo (« À faire aujourd'hui »), components (cartes, courbe, bouton « Valider et envoyer »)
 src/lib/action-context.ts  context(...rôles) des Server Actions (session, profil, contrôle du rôle) ; src/lib/zod-helpers.ts  décimaux français, textes optionnels
 scripts/               faux-n8n.mjs (faux serveur n8n), appel-n8n.mjs (appel entrant signé)
@@ -122,7 +124,19 @@ src/types/models.ts    alias métier (Role, PoleCode, ProduitStock...)
 - « Aujourd'hui » = jour de Paris partout en base (`app.aujourdhui()`, migration `20260930000100`), y compris `v_commandes.est_en_retard` et `v_alertes_dlc`.
 - Temps réel : `RealtimeRefresh` (Supabase Realtime, `router.refresh()` après 700 ms) sur commandes, mouvements, livraisons, lots DLC, inventaires et appels.
 
+## Paramètres (étape 6)
+
+- Réservé au gérant : `parametres/layout.tsx` et chaque page font `requireRole("gerant")`, la RLS refuse le reste. Six onglets : `/parametres` (complexe, logo, pôles), `/utilisateurs`, `/horaires`, `/stocks` (catégories et lieux), `/integrations`, `/donnees` (conservation, purge, journal d'audit). `Mon compte` (`/mon-compte`, `features/compte`) est ouvert à tous : profil, mot de passe, export RGPD.
+- Code : `src/features/parametres/` avec un fichier d'actions par domaine (`actions-complexe`, `-utilisateurs`, `-horaires`, `-stocks`, `-integrations`, `-donnees`), `schemas.ts` (Zod), `queries.ts`, `labels.ts`, `export.ts` (téléchargement RGPD), `components/`. Migration `20260930000200_parametres.sql`.
+- **Invitations** : le client admin (service_role) fait `createUser` avec rôle et pôle dans `app_metadata` (jamais modifiable par la personne elle-même, contrairement à `user_metadata`), puis `inviteUserByEmail` ; le trigger `app.creer_profil` ne lit que `raw_app_meta_data` pour le rôle et le pôle (une inscription libre devient donc un simple salarié sans pôle, sans accès), puis l'action réécrit rôle, pôle, contrat sur le profil et **supprime le compte Auth si l'envoi ou la mise à jour échoue**. Ne pas faire dépendre le trigger de `invited_at` : GoTrue l'écrit après l'insertion. Le lien de l'e-mail passe par `/auth/callback?token_hash=…&type=invite` (`verifyOtp`), pas par le flux PKCE : le modèle d'e-mail Supabase doit être changé (README, `supabase/templates/invite.html`, déjà branché dans `config.toml`). `invitations_en_attente()` (invité, jamais connecté) donne l'état « Invitation en attente ».
+- Désactivation : `profiles.actif = false` **et** `ban_duration` côté Auth ; `getCurrentUser` renvoie null pour un profil inactif, donc une session ouverte est coupée à la page suivante. Anonymisation : RPC `anonymiser_utilisateur` (identité effacée du profil et de l'audit) puis e-mail Auth remplacé et compte bloqué ; interdite sur soi-même, confirmation « ANONYMISER » tapée.
+- Logo : bucket Storage public `logos` (écriture gérant seulement), type reconnu aux premiers octets (pas de SVG), 500 Ko, ancien fichier supprimé au remplacement ; adresse via `logoPublicUrl`. Couleurs : contraste vérifié (`lib/colors.ts`) et injecté par `(app)/layout.tsx`.
+- Webhook n8n : `resolveOrderWebhookUrl` préfère l'adresse des paramètres (si active) à `N8N_WEBHOOK_ORDER_SEND`. « Tester la connexion » envoie `test.ping` signé (`postSignedToN8n`) et enregistre code et date.
+- Journal d'audit : `audit_trigger` enregistre désormais l'id de la ligne (`cible_id`) même pour un UPDATE (avant, seules les colonnes modifiées étaient lues, donc jamais l'id) ; `journaliser_evenement` (gérant) trace invitation, test de webhook, logo, horaires. Purge : `app.purger_donnees()` renvoie les quantités, `purger_donnees_maintenant()` la lance à la demande.
+- Après un enregistrement, les formulaires font `reset(getValues())` : sans cela `isDirty` reste vrai (les valeurs par défaut de RHF ne changent pas au `router.refresh()`).
+- Reporté : recettes et décrément automatique des stocks (colonne `decrement_auto_recettes` conservée, non exposée), nom des jours fériés.
+
 ## État d'avancement
 
-- Étape 1 (setup, auth, rôles) : faite. Étape 2 (stocks) : faite. Étape 3 (fournisseurs, commandes, n8n) : faite. Étape 4 (journal des appels IA) : faite. Étape 5 (tableau de bord) : faite, voir README. Étapes 6 et 7 : à faire.
+- Étape 1 (setup, auth, rôles) : faite. Étape 2 (stocks) : faite. Étape 3 (fournisseurs, commandes, n8n) : faite. Étape 4 (journal des appels IA) : faite. Étape 5 (tableau de bord) : faite. Étape 6 (paramètres) : faite, voir README. Étape 7 : à faire.
 - Essais réalisés sans Docker : Postgres 16 réel + un bouchon PostgREST/GoTrue local (avec clé service_role), navigateur piloté par Playwright, faux n8n en https. Le vrai Supabase (envoi d'e-mails, création des comptes de démo par `supabase db reset`) et un vrai n8n restent à vérifier au premier démarrage.

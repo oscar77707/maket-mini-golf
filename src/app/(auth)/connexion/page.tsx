@@ -7,7 +7,8 @@ import { LoginForm } from "@/features/auth/login-form";
 export const metadata: Metadata = { title: "Connexion" };
 
 const NOTICES: Record<string, string> = {
-  "lien-invalide": "Ce lien n'est plus valable. Demandez un nouvel e-mail de réinitialisation.",
+  "lien-invalide":
+    "Ce lien n'est plus valable (il expire au bout de 24 heures). Demandez un nouvel e-mail de réinitialisation, ou au gérant de vous renvoyer l'invitation.",
   "acces-impossible":
     "Votre session est terminée ou votre compte est désactivé. Reconnectez-vous, ou contactez le gérant.",
 };

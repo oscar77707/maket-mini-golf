@@ -1537,6 +1537,23 @@ export type Database = {
         };
         Returns: Json;
       };
+      invitations_en_attente: {
+        Args: Record<PropertyKey, never>;
+        Returns: string[];
+      };
+      journaliser_evenement: {
+        Args: {
+          p_action: string;
+          p_table: string;
+          p_cible: string;
+          p_details?: Json;
+        };
+        Returns: undefined;
+      };
+      purger_donnees_maintenant: {
+        Args: Record<PropertyKey, never>;
+        Returns: Json;
+      };
       soumettre_inventaire: {
         Args: {
           p_inventaire_id: string;

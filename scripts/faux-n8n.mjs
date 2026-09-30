@@ -48,6 +48,17 @@ createServer((req, res) => {
       return;
     }
     const commande = JSON.parse(body);
+    if (commande.evenement === "test.ping") {
+      console.log(
+        `[${new Date().toISOString()}] test.ping reçu (webhook « ${commande.webhook} ») : connexion OK`,
+      );
+      if (echec) {
+        res.writeHead(500).end("échec simulé");
+        return;
+      }
+      res.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify({ ok: true }));
+      return;
+    }
     console.log(
       `[${new Date().toISOString()}] ${commande.evenement} ${commande.reference} pour ${commande.fournisseur?.nom} (${commande.fournisseur?.mode_commande}) : ${commande.lignes?.length} ligne(s), ${commande.total_ht} € HT`,
     );

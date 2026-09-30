@@ -132,6 +132,16 @@ Le standard IA envoie chaque appel terminé. Mêmes en-têtes et même signature
 - Réponse : `200 {"appelId", "numero": "06 •• •• •• 78"}`. Codes : 400 (corps invalide, `details` liste les champs), 401 (jeton, signature ou horodatage), 409 (même clé déjà en cours), 500.
 - Seul le gérant voit le journal (la base refuse toute lecture aux autres rôles). Les appels sont supprimés après 90 jours (réglable), chaque nuit à 3 h 15 par `pg_cron`. Si `pg_cron` n'est pas activé sur votre projet Supabase (Database > Extensions), activez-le, ou lancez `select app.purger_donnees();` à la main.
 
+## Test de connexion (Paramètres > Intégrations)
+
+L'adresse du webhook d'envoi se règle dans **Paramètres > Intégrations** (https obligatoire, sans identifiant dans l'adresse) ; si elle est vide ou désactivée, l'application utilise `N8N_WEBHOOK_ORDER_SEND`. Le bouton **Tester la connexion** envoie un `POST` signé de la même façon que les commandes :
+
+```json
+{ "evenement": "test.ping", "webhook": "order_send", "envoye_le": "2026-09-30T10:12:00.000Z" }
+```
+
+n8n doit répondre 2xx (aucun autre traitement). Le code de réponse et l'heure s'affichent sur la carte du webhook ; l'essai est inscrit au journal d'audit. La clé d'idempotence est `test.ping:<uuid>` (un essai par clic).
+
 ## Tester sans n8n
 
 ```bash

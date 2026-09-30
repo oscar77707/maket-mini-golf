@@ -18,6 +18,8 @@ export function PoleFilter({ poles }: { poles: PoleOption[] }) {
   const pathname = usePathname();
   const params = useSearchParams();
   const current = params.get("pole");
+  // les réglages et le compte ne dépendent pas d'un pôle : le filtre n'y a pas de sens
+  if (pathname.startsWith("/parametres") || pathname.startsWith("/mon-compte")) return null;
 
   const select = (code: PoleCode | null) => {
     const next = new URLSearchParams(params.toString());

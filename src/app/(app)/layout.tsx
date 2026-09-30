@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { requireUser } from "@/lib/auth/session";
+import { logoPublicUrl } from "@/lib/logo";
 import { createClient } from "@/lib/supabase/server";
 
 const HEX = /^#[0-9A-Fa-f]{6}$/;
@@ -15,7 +16,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const [{ data: parametres }, { data: poles }] = await Promise.all([
     supabase
       .from("parametres")
-      .select("nom_complexe, couleur_principale, couleur_secondaire")
+      .select("nom_complexe, logo_path, couleur_principale, couleur_secondaire")
       .maybeSingle(),
     supabase.from("poles").select("code, nom, couleur").eq("actif", true).order("ordre"),
   ]);
@@ -36,6 +37,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <AppShell
         user={user}
         complexName={parametres?.nom_complexe ?? "La Palmeraie"}
+        logoUrl={logoPublicUrl(parametres?.logo_path)}
         poles={poles ?? []}
       >
         {children}

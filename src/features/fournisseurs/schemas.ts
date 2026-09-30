@@ -1,20 +1,9 @@
 import { z } from "zod";
-import { decimal, nonNegative, optionalText } from "@/lib/zod-helpers";
+import { decimal, nonNegative, optionalEmail, optionalText } from "@/lib/zod-helpers";
 
 const jours = z
   .array(z.number().int().min(1).max(7))
   .transform((list) => [...new Set(list)].sort((a, b) => a - b));
-
-const optionalEmail = z.preprocess(
-  (v) => (v === undefined || (typeof v === "string" && v.trim() === "") ? null : v),
-  z
-    .string()
-    .trim()
-    .toLowerCase()
-    .max(120, "Adresse e-mail trop longue.")
-    .pipe(z.email("Adresse e-mail invalide."))
-    .nullable(),
-);
 
 const optionalUrl = z.preprocess(
   (v) => (v === undefined || (typeof v === "string" && v.trim() === "") ? null : v),
